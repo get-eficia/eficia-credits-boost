@@ -24,11 +24,12 @@ interface PricingSliderProps {
 }
 
 interface CreditPack {
-  id: number;
+  id: string;
   credits: number;
-  price_cents: number;
-  currency: string;
+  price: number;
+  price_per_credit: number;
   name: string;
+  is_popular: boolean;
 }
 
 export const PricingSlider = ({ showCta = true, compact = false }: PricingSliderProps) => {
@@ -49,17 +50,17 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
   const loadPricingData = async () => {
     const { data: packsData, error } = await supabase
       .from("credit_packs")
-      .select("id, name, credits, price_cents, currency")
+      .select("id, name, credits, price, price_per_credit, is_popular")
       .eq("is_active", true)
       .order("credits", { ascending: true });
 
     if (error || !packsData || packsData.length === 0) {
       console.error("Error loading pricing data:", error);
-      // Fallback tiers
-      const fallbackSteps = [50, 200, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000];
+      // Fallback tiers matching new structure
+      const fallbackSteps = [50, 100, 200, 500, 1000, 2500, 5000, 10000];
       setSliderSteps(fallbackSteps);
-      setPricingTiers(fallbackSteps.map(c => ({ credits: c, pricePerCredit: 0.29 })));
-      setAmount(fallbackSteps[1]);
+      setPricingTiers(fallbackSteps.map(c => ({ credits: c, pricePerCredit: 0.29 - (c / 10000) * 0.17 })));
+      setAmount(fallbackSteps[3]); // Default to 500 (Professional)
       setLoading(false);
       return;
     }
@@ -68,22 +69,26 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
       id: pack.id,
       name: pack.name,
       credits: pack.credits,
-      price_cents: pack.price_cents,
-      currency: pack.currency || "eur",
+      price: pack.price,
+      price_per_credit: pack.price_per_credit,
+      is_popular: pack.is_popular,
     }));
 
     const tiers: PricingTier[] = packs.map((pack) => ({
       credits: pack.credits,
-      pricePerCredit: pack.price_cents / 100 / pack.credits,
+      pricePerCredit: pack.price_per_credit,
     }));
 
     const steps = tiers.map(t => t.credits);
-    
+
     setCreditPacks(packs);
     setSliderSteps(steps);
     setPricingTiers(tiers);
-    setAmount(steps[Math.min(1, steps.length - 1)]);
-    setSliderIndex(Math.min(1, steps.length - 1));
+    // Default to Professional pack (500 credits) if available
+    const defaultIndex = steps.findIndex(s => s === 500);
+    const index = defaultIndex >= 0 ? defaultIndex : Math.min(3, steps.length - 1);
+    setAmount(steps[index]);
+    setSliderIndex(index);
     setLoading(false);
   };
 
@@ -189,6 +194,9 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
 
   const price = calculatePrice(amount);
   const pricePerCredit = getPricePerCredit(amount);
+  const selectedPack = getSelectedPack();
+  const basePricePerCredit = 0.29;
+  const savingsPercent = Math.round((1 - pricePerCredit / basePricePerCredit) * 100);
 
   return (
     <div className={`rounded-2xl border border-border bg-card ${compact ? "p-6" : "p-8 md:p-12"}`}>
@@ -198,6 +206,20 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
           Adjust the slider to see how many numbers you want to enrich
         </p>
       </div>
+
+      {/* Pack Name and Popular Badge */}
+      {selectedPack && (
+        <div className="mb-4 flex items-center justify-center gap-2">
+          <span className="font-display text-lg font-semibold text-eficia-violet">
+            {selectedPack.name}
+          </span>
+          {selectedPack.is_popular && (
+            <span className="rounded-full bg-eficia-violet px-3 py-1 text-xs font-semibold text-white">
+              ⭐ Most Popular
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Amount and Price Display */}
       <div className="mb-6 flex items-end justify-between">
@@ -212,6 +234,11 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
           <p className="text-sm text-muted-foreground">
             {formatPrice(pricePerCredit)} per number
           </p>
+          {savingsPercent > 0 && (
+            <p className="text-xs font-semibold text-green-600">
+              Save {savingsPercent}% vs base price
+            </p>
+          )}
         </div>
       </div>
 

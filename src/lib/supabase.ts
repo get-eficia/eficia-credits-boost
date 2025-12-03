@@ -11,11 +11,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types based on your schema
 export interface Profile {
-  id: string;
+  user_id: string;
   email: string;
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  is_admin: boolean;
   created_at: string;
   updated_at: string;
 }

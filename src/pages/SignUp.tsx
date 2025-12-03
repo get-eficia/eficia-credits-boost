@@ -61,6 +61,7 @@ const SignUp = () => {
     
     try {
       // 1. Sign up with Supabase Auth
+      // The trigger will automatically create profile and credit_account
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -78,20 +79,19 @@ const SignUp = () => {
 
       const userId = authData.user.id;
 
-      // 2. Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          email: formData.email,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          phone: formData.phone || null,
-        });
+      // Wait a bit for the trigger to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (profileError) {
-        console.error('Profile error:', profileError);
-        // Profile might already exist via trigger, continue
+      // 2. Update profile with phone if provided
+      if (formData.phone) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ phone: formData.phone })
+          .eq('user_id', userId);
+
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+        }
       }
 
       // 3. Create billing profile
@@ -109,25 +109,18 @@ const SignUp = () => {
 
       if (billingError) {
         console.error('Billing profile error:', billingError);
-      }
-
-      // 4. Create credit account with 0 balance
-      const { error: creditError } = await supabase
-        .from('credit_accounts')
-        .insert({
-          user_id: userId,
-          balance: 0,
+        toast({
+          title: 'Warning',
+          description: 'Account created but billing information could not be saved. You can update it later.',
+          variant: 'destructive',
         });
-
-      if (creditError) {
-        console.error('Credit account error:', creditError);
       }
 
       toast({
         title: 'Welcome to Eficia!',
         description: 'Your account has been created successfully. Please check your email to confirm.',
       });
-      
+
       navigate('/app');
     } catch (err: any) {
       console.error('Signup error:', err);
