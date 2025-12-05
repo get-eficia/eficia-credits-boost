@@ -1,8 +1,8 @@
+import eficiaLogo from "@/assets/eficia-logo.png";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { LogOut, Menu, X } from "lucide-react";
-import eficiaLogo from "@/assets/eficia-logo.png";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -79,19 +79,30 @@ export const Header = () => {
           </Link>
           {user ? (
             <>
-              <Link
-                to="/app"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Dashboard
-              </Link>
-              {user.isAdmin && (
+              {/* Dashboard visible uniquement si NON admin */}
+              {!user.isAdmin && (
                 <Link
-                  to="/admin"
+                  to="/app"
                   className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  Admin
+                  Dashboard
                 </Link>
+              )}
+              {user.isAdmin && (
+                <>
+                  <Link
+                    to="/admin"
+                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Admin
+                  </Link>
+                  <Link
+                    to="/admin/users"
+                    className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    All Users
+                  </Link>
+                </>
               )}
               <div className="flex items-center gap-3">
                 <span className="text-sm text-muted-foreground">
@@ -148,21 +159,34 @@ export const Header = () => {
             </Link>
             {user ? (
               <>
-                <Link
-                  to="/app"
-                  className="text-sm font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
-                {user.isAdmin && (
+                {/* Dashboard visible uniquement si NON admin */}
+                {!user.isAdmin && (
                   <Link
-                    to="/admin"
+                    to="/app"
                     className="text-sm font-medium"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Admin
+                    Dashboard
                   </Link>
+                )}
+
+                {user.isAdmin && (
+                  <>
+                    <Link
+                      to="/admin"
+                      className="text-sm font-medium"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                    <Link
+                      to="/admin/users"
+                      className="text-sm font-medium"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      All Users
+                    </Link>
+                  </>
                 )}
                 <Button
                   variant="ghost"

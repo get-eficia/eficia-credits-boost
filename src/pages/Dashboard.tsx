@@ -182,14 +182,45 @@ const Dashboard = () => {
 
       if (uploadError) throw uploadError;
 
-      const { error: jobError } = await supabase.from("enrich_jobs").insert({
-        user_id: user.id,
-        original_filename: selectedFile.name,
-        original_file_path: filePath,
-        status: "uploaded",
-      });
+      const { data: jobData, error: jobError } = await supabase
+        .from("enrich_jobs")
+        .insert({
+          user_id: user.id,
+          original_filename: selectedFile.name,
+          original_file_path: filePath,
+          status: "uploaded",
+        })
+        .select()
+        .single();
 
       if (jobError) throw jobError;
+
+      // Notify admins about the new upload
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session?.access_token) {
+          const { error: functionError } = await supabase.functions.invoke(
+            'notify-admin-new-job',
+            {
+              body: {
+                jobId: jobData.id,
+                userId: user.id,
+                filename: selectedFile.name,
+                filePath: filePath,
+              },
+            }
+          );
+
+          if (functionError) {
+            console.error('Error calling notification function:', functionError);
+            // Don't fail the upload if notification fails
+          }
+        }
+      } catch (notifError) {
+        console.error('Error sending admin notification:', notifError);
+        // Continue even if notification fails
+      }
 
       await loadData(user.id);
       setSelectedFile(null);

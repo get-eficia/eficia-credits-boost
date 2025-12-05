@@ -101,19 +101,14 @@ const Admin = () => {
   };
 
   const loadJobs = async () => {
-    // Fetch all jobs with user emails from profiles
-    const { data: jobsData, error } = await supabase
+    // Fetch all jobs
+    const { data: jobsData, error: jobsError } = await supabase
       .from("enrich_jobs")
-      .select(
-        `
-        *,
-        profiles:user_id (email)
-      `
-      )
+      .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error loading jobs:", error);
+    if (jobsError) {
+      console.error("Error loading jobs:", jobsError);
       toast({
         title: "Error",
         description: "Failed to load jobs",
@@ -122,9 +117,38 @@ const Admin = () => {
       return;
     }
 
-    const jobsWithEmail: JobWithUser[] = (jobsData || []).map((job: any) => ({
+    if (!jobsData || jobsData.length === 0) {
+      setJobs([]);
+      return;
+    }
+
+    // Fetch all profiles to get emails
+    const userIds = [...new Set(jobsData.map((job) => job.user_id))];
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("user_id, email")
+      .in("user_id", userIds);
+
+    if (profilesError) {
+      console.error("Error loading profiles:", profilesError);
+      // Continue without emails if profiles fail
+      const jobsWithoutEmail: JobWithUser[] = jobsData.map((job: any) => ({
+        ...job,
+        userEmail: "Unknown",
+      }));
+      setJobs(jobsWithoutEmail);
+      return;
+    }
+
+    // Create a map of user_id to email
+    const emailMap = new Map(
+      (profilesData || []).map((profile) => [profile.user_id, profile.email])
+    );
+
+    // Combine jobs with emails
+    const jobsWithEmail: JobWithUser[] = jobsData.map((job: any) => ({
       ...job,
-      userEmail: job.profiles?.email || "Unknown",
+      userEmail: emailMap.get(job.user_id) || "Unknown",
     }));
 
     setJobs(jobsWithEmail);

@@ -159,8 +159,20 @@ ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
 -- Check bucket exists
 SELECT * FROM storage.buckets WHERE name = 'enrich-uploads';
 
--- Check storage policies
-SELECT * FROM storage.policies WHERE bucket_id = 'enrich-uploads';
+-- Check storage policies (correct PostgreSQL query)
+SELECT
+  policyname,
+  cmd as operation,
+  CASE
+    WHEN qual IS NOT NULL THEN 'USING: ' || pg_get_expr(qual, 'storage.objects'::regclass)
+    WHEN with_check IS NOT NULL THEN 'WITH CHECK: ' || pg_get_expr(with_check, 'storage.objects'::regclass)
+    ELSE 'No condition'
+  END as policy_condition
+FROM pg_policies
+WHERE schemaname = 'storage'
+  AND tablename = 'objects'
+  AND policyname ILIKE '%enrich%'
+ORDER BY policyname;
 ```
 
 ---

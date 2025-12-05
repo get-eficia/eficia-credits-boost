@@ -79,6 +79,15 @@ const SignUp = () => {
 
       const userId = authData.user.id;
 
+      // IMPORTANT: Set the session to authenticate the user immediately
+      // This ensures auth.uid() works in RLS policies
+      if (authData.session) {
+        await supabase.auth.setSession({
+          access_token: authData.session.access_token,
+          refresh_token: authData.session.refresh_token,
+        });
+      }
+
       // Wait a bit for the trigger to complete
       await new Promise(resolve => setTimeout(resolve, 500));
 
