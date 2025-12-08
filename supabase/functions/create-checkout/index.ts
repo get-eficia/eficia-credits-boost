@@ -49,7 +49,7 @@ serve(async (req) => {
     // Fetch credit pack from database
     const { data: pack, error: packError } = await supabaseClient
       .from("credit_packs")
-      .select("id, name, credits, price_cents, currency")
+      .select("id, name, credits, price")
       .eq("id", pack_id)
       .eq("is_active", true)
       .single();
@@ -57,7 +57,11 @@ serve(async (req) => {
     if (packError || !pack) {
       throw new Error("Credit pack not found or inactive");
     }
-    logStep("Credit pack found", pack);
+
+    // Convert price to cents for Stripe (price is in EUR as decimal)
+    const priceCents = Math.round(parseFloat(pack.price) * 100);
+
+    logStep("Credit pack found", { ...pack, priceCents });
 
     // Initialize Stripe
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -79,12 +83,12 @@ serve(async (req) => {
       line_items: [
         {
           price_data: {
-            currency: pack.currency || "eur",
+            currency: "eur",
             product_data: {
               name: pack.name,
               description: `${pack.credits} credits`,
             },
-            unit_amount: pack.price_cents,
+            unit_amount: priceCents,
           },
           quantity: 1,
         },

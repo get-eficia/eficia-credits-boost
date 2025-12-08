@@ -1,8 +1,10 @@
 // Edge Function to notify admins when a new enrichment job is uploaded
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts"
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
+const GMAIL_USER = Deno.env.get('GMAIL_USER') // g.darroux@gmail.com
+const GMAIL_APP_PASSWORD = Deno.env.get('GMAIL_APP_PASSWORD') // App password from Google
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
@@ -13,7 +15,17 @@ interface EmailPayload {
   filePath: string
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     // Parse the webhook payload
     const payload: EmailPayload = await req.json()
@@ -154,29 +166,31 @@ serve(async (req) => {
 </html>
       `
 
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${RESEND_API_KEY}`
+      // Create SMTP client for Gmail
+      const client = new SMTPClient({
+        connection: {
+          hostname: "smtp.gmail.com",
+          port: 465,
+          tls: true,
+          auth: {
+            username: GMAIL_USER!,
+            password: GMAIL_APP_PASSWORD!,
+          },
         },
-        body: JSON.stringify({
-          from: 'Eficia Credits Boost <noreply@eficia.agency>',
-          to: [admin.email],
-          subject: `🔔 New File Upload: ${payload.filename}`,
-          html: emailHtml,
-        })
       })
 
-      const data = await res.json()
+      await client.send({
+        from: `Eficia Credits Boost <${GMAIL_USER}>`,
+        to: admin.email,
+        subject: `🔔 New File Upload: ${payload.filename}`,
+        content: "auto",
+        html: emailHtml,
+      })
 
-      if (!res.ok) {
-        console.error(`Failed to send email to ${admin.email}:`, data)
-        throw new Error(`Resend API error: ${JSON.stringify(data)}`)
-      }
+      await client.close()
 
-      console.log(`Email sent successfully to ${admin.email}:`, data)
-      return data
+      console.log(`Email sent successfully to ${admin.email}`)
+      return { success: true, email: admin.email }
     })
 
     const results = await Promise.all(emailPromises)
@@ -188,7 +202,7 @@ serve(async (req) => {
         results
       }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
       }
     )
@@ -201,7 +215,7 @@ serve(async (req) => {
         error: error.message
       }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500
       }
     )

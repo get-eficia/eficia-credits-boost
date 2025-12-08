@@ -134,13 +134,25 @@ const Dashboard = () => {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!hasCredits) {
+      toast({
+        title: "Not enough credits",
+        description: "You need credits to upload a file.",
+        variant: "destructive",
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (validateFile(file)) {
       setSelectedFile(file);
     }
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -148,21 +160,32 @@ const Dashboard = () => {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    if (!hasCredits) return;
     setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
+    if (!hasCredits) return;
     setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    if (!hasCredits) {
+      toast({
+        title: "Not enough credits",
+        description: "You need credits to upload a file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    
+
     if (validateFile(file)) {
       setSelectedFile(file);
     }
@@ -171,10 +194,21 @@ const Dashboard = () => {
   const handleUpload = async () => {
     if (!selectedFile || !user) return;
 
+    if (!hasCredits) {
+      toast({
+        title: "Not enough credits",
+        description: "You need credits to upload a file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploading(true);
 
     try {
-      const filePath = `uploads/${user.id}/${crypto.randomUUID()}/${selectedFile.name}`;
+      const filePath = `uploads/${user.id}/${crypto.randomUUID()}/${
+        selectedFile.name
+      }`;
 
       const { error: uploadError } = await supabase.storage
         .from("enrich-uploads")
@@ -197,11 +231,13 @@ const Dashboard = () => {
 
       // Notify admins about the new upload
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
         if (session?.access_token) {
           const { error: functionError } = await supabase.functions.invoke(
-            'notify-admin-new-job',
+            "notify-admin-new-job",
             {
               body: {
                 jobId: jobData.id,
@@ -213,12 +249,15 @@ const Dashboard = () => {
           );
 
           if (functionError) {
-            console.error('Error calling notification function:', functionError);
+            console.error(
+              "Error calling notification function:",
+              functionError
+            );
             // Don't fail the upload if notification fails
           }
         }
       } catch (notifError) {
-        console.error('Error sending admin notification:', notifError);
+        console.error("Error sending admin notification:", notifError);
         // Continue even if notification fails
       }
 
@@ -246,6 +285,13 @@ const Dashboard = () => {
   };
 
   const handleDownload = async (job: EnrichJob) => {
+    // If Google Drive URL is available, open it in new tab
+    if (job.enriched_file_url) {
+      window.open(job.enriched_file_url, "_blank");
+      return;
+    }
+
+    // Fallback to old storage download method
     if (!job.enriched_file_path) return;
 
     const { data, error } = await supabase.storage
@@ -284,6 +330,9 @@ const Dashboard = () => {
         return <AlertCircle className="h-4 w-4" />;
     }
   };
+
+  const availableCredits = credits?.balance ?? 0;
+  const hasCredits = availableCredits > 0;
 
   if (loading) {
     return (
@@ -353,7 +402,23 @@ const Dashboard = () => {
             Upload File for Enrichment
           </h2>
 
-          {selectedFile ? (
+          {!hasCredits ? (
+            <div className="rounded-lg border border-border bg-secondary/30 p-6 text-center">
+              <AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" />
+              <p className="font-medium">
+                You don’t have any credits available.
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Purchase a credit pack to upload a file for enrichment.
+              </p>
+              <Link to="/pricing">
+                <Button className="mt-4 gradient-bg text-accent-foreground hover:opacity-90">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Buy Credits
+                </Button>
+              </Link>
+            </div>
+          ) : selectedFile ? (
             <div className="rounded-lg border-2 border-eficia-violet/50 bg-secondary/30 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -516,7 +581,7 @@ const Dashboard = () => {
                       </td>
                       <td className="px-6 py-4">
                         {job.status === "completed" &&
-                        job.enriched_file_path ? (
+                        (job.enriched_file_url || job.enriched_file_path) ? (
                           <Button
                             size="sm"
                             variant="outline"

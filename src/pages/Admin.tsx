@@ -29,13 +29,13 @@ import {
   Clock,
   Eye,
   FileSpreadsheet,
+  Link as LinkIcon,
   Loader2,
   Save,
-  Upload,
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface JobWithUser extends EnrichJob {
@@ -45,7 +45,6 @@ interface JobWithUser extends EnrichJob {
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -53,7 +52,6 @@ const Admin = () => {
   const [selectedJob, setSelectedJob] = useState<JobWithUser | null>(null);
   const [editedJob, setEditedJob] = useState<Partial<EnrichJob>>({});
   const [saving, setSaving] = useState(false);
-  const [uploadingFile, setUploadingFile] = useState(false);
 
   useEffect(() => {
     checkAdminAndLoadData();
@@ -163,6 +161,7 @@ const Admin = () => {
       credited_numbers: job.credited_numbers,
       admin_note: job.admin_note,
       enriched_file_path: job.enriched_file_path,
+      enriched_file_url: job.enriched_file_url,
     });
   };
 
@@ -179,6 +178,7 @@ const Admin = () => {
         credited_numbers: editedJob.credited_numbers,
         admin_note: editedJob.admin_note,
         enriched_file_path: editedJob.enriched_file_path,
+        enriched_file_url: editedJob.enriched_file_url,
       };
 
       // If marking as completed and wasn't completed before
@@ -231,6 +231,34 @@ const Admin = () => {
 
       if (error) throw error;
 
+      // Notify user if job was just completed
+      if (
+        editedJob.status === "completed" &&
+        selectedJob.status !== "completed"
+      ) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+
+          if (session?.access_token) {
+            await supabase.functions.invoke('notify-user-job-completed', {
+              body: {
+                jobId: selectedJob.id,
+                userId: selectedJob.user_id,
+                filename: selectedJob.original_filename,
+                numbersFound: editedJob.numbers_found || 0,
+                creditedNumbers: editedJob.credited_numbers || 0,
+                enrichedFileUrl: editedJob.enriched_file_url || null,
+              },
+            });
+
+            console.log('User notification sent');
+          }
+        } catch (notifError) {
+          console.error('Error sending user notification:', notifError);
+          // Continue even if notification fails
+        }
+      }
+
       await loadJobs();
       setSelectedJob(null);
 
@@ -250,44 +278,6 @@ const Admin = () => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedJob) return;
-
-    setUploadingFile(true);
-
-    try {
-      const filePath = `enriched/${selectedJob.id}/${file.name}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("enrich-uploads")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      setEditedJob((prev) => ({
-        ...prev,
-        enriched_file_path: filePath,
-      }));
-
-      toast({
-        title: "File attached",
-        description: "Enriched file has been uploaded and attached to the job.",
-      });
-    } catch (error: any) {
-      console.error("Error uploading file:", error);
-      toast({
-        title: "Upload Failed",
-        description: error.message || "Failed to upload file",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingFile(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
 
   // Stats
   const stats = {
@@ -601,40 +591,28 @@ const Admin = () => {
               </div>
 
               <div>
-                <Label>Enriched File</Label>
+                <Label htmlFor="enrichedFileUrl">
+                  Google Drive Link (Enriched File)
+                </Label>
                 <div className="mt-1 flex items-center gap-2">
-                  {editedJob.enriched_file_path ||
-                  selectedJob.enriched_file_path ? (
-                    <span className="flex-1 truncate rounded-lg bg-secondary/50 px-3 py-2 text-sm">
-                      {editedJob.enriched_file_path ||
-                        selectedJob.enriched_file_path}
-                    </span>
-                  ) : (
-                    <span className="flex-1 text-sm text-muted-foreground">
-                      No file attached
-                    </span>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv,.xls,.xlsx"
-                    onChange={handleFileUpload}
-                    className="hidden"
+                  <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="enrichedFileUrl"
+                    type="url"
+                    value={editedJob.enriched_file_url || ""}
+                    onChange={(e) =>
+                      setEditedJob((prev) => ({
+                        ...prev,
+                        enriched_file_url: e.target.value,
+                      }))
+                    }
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="flex-1"
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingFile}
-                  >
-                    {uploadingFile ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="mr-2 h-4 w-4" />
-                    )}
-                    Upload
-                  </Button>
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Paste the Google Drive shareable link for the enriched file
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-4">

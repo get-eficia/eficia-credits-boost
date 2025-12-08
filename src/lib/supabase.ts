@@ -17,13 +17,7 @@ export interface Profile {
   last_name: string | null;
   phone: string | null;
   is_admin: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface BillingProfile {
-  id: string;
-  user_id: string;
+  // Billing information (merged from billing_profiles)
   company_name: string | null;
   vat_number: string | null;
   billing_address: string | null;
@@ -60,6 +54,7 @@ export interface EnrichJob {
   original_filename: string;
   original_file_path: string;
   enriched_file_path: string | null;
+  enriched_file_url: string | null;
   status: 'uploaded' | 'processing' | 'completed' | 'error';
   total_rows: number | null;
   numbers_found: number | null;

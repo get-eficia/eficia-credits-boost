@@ -1,7 +1,6 @@
+import eficiaLogo from "@/assets/eficia-logo.png";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +8,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Zap } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -106,9 +107,14 @@ const SignIn = () => {
       <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl gradient-bg">
-              <Zap className="h-6 w-6 text-accent-foreground" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center">
+              <img
+                src={eficiaLogo}
+                alt="Eficia Logo"
+                className="h-14 object-contain"
+              />
             </div>
+
             <h1 className="font-display text-3xl font-bold">Welcome back</h1>
             <p className="mt-2 text-muted-foreground">
               Don't have an account?{" "}
@@ -180,9 +186,12 @@ const SignIn = () => {
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display">Reset your password</DialogTitle>
+            <DialogTitle className="font-display">
+              Reset your password
+            </DialogTitle>
             <DialogDescription>
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address and we'll send you a link to reset your
+              password.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4">
