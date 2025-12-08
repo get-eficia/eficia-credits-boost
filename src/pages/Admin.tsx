@@ -190,35 +190,85 @@ const Admin = () => {
 
         // Deduct credits from user's account and create transaction
         if (editedJob.credited_numbers && editedJob.credited_numbers > 0) {
-          // Get user's credit account
-          const { data: creditAccount } = await supabase
-            .from("credit_accounts")
-            .select("id, balance")
+          console.log(
+            "Starting credit deduction for user:",
+            selectedJob.user_id,
+            "amount:",
+            editedJob.credited_numbers
+          );
+
+          // Get user's current credit balance
+          const { data: profile, error: profileFetchError } = await supabase
+            .from("profiles")
+            .select("credit_balance")
             .eq("user_id", selectedJob.user_id)
             .maybeSingle();
 
-          if (creditAccount) {
+          if (profileFetchError) {
+            console.error("Error fetching profile:", profileFetchError);
+          }
+
+          console.log("Profile found:", profile);
+
+          if (profile) {
             // Update balance
             const newBalance =
-              (creditAccount.balance || 0) - editedJob.credited_numbers;
-            await supabase
-              .from("credit_accounts")
-              .update({ balance: newBalance })
-              .eq("id", creditAccount.id);
+              (profile.credit_balance || 0) - editedJob.credited_numbers;
+
+            console.log(
+              "Updating balance from",
+              profile.credit_balance,
+              "to",
+              newBalance
+            );
+
+            const { error: balanceError } = await supabase
+              .from("profiles")
+              .update({ credit_balance: newBalance })
+              .eq("user_id", selectedJob.user_id);
+
+            if (balanceError) {
+              console.error("Error updating credit balance:", balanceError);
+              throw new Error(
+                `Failed to update credit balance: ${balanceError.message}`
+              );
+            }
+
+            console.log("Balance updated successfully");
 
             // Create credit transaction
-            await supabase.from("credit_transactions").insert({
-              credit_account_id: creditAccount.id,
-              amount: -editedJob.credited_numbers,
-              type: "enrich_deduction",
-              description: `Enrichment job: ${selectedJob.original_filename}`,
-              related_job_id: selectedJob.id,
+            console.log("Creating transaction record...");
+            const { error: txError, data: txData } = await supabase
+              .from("credit_transactions")
+              .insert({
+                user_id: selectedJob.user_id,
+                amount: -editedJob.credited_numbers,
+                type: "enrich_deduction",
+                description: `Enrichment job: ${selectedJob.original_filename}`,
+                related_job_id: selectedJob.id,
+              })
+              .select();
+
+            console.log("Transaction insert result:", {
+              error: txError,
+              data: txData,
             });
+
+            if (txError) {
+              console.error("Error creating transaction:", txError);
+              throw new Error(
+                `Failed to create transaction: ${txError.message}`
+              );
+            }
+
+            console.log("Transaction created successfully");
 
             toast({
               title: "Credits Deducted",
               description: `${editedJob.credited_numbers} credits deducted from user's account.`,
             });
+          } else {
+            console.error("Profile not found for user:", selectedJob.user_id);
           }
         }
       }
@@ -237,10 +287,12 @@ const Admin = () => {
         selectedJob.status !== "completed"
       ) {
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
 
           if (session?.access_token) {
-            await supabase.functions.invoke('notify-user-job-completed', {
+            await supabase.functions.invoke("notify-user-job-completed", {
               body: {
                 jobId: selectedJob.id,
                 userId: selectedJob.user_id,
@@ -251,10 +303,10 @@ const Admin = () => {
               },
             });
 
-            console.log('User notification sent');
+            console.log("User notification sent");
           }
         } catch (notifError) {
-          console.error('Error sending user notification:', notifError);
+          console.error("Error sending user notification:", notifError);
           // Continue even if notification fails
         }
       }
@@ -277,7 +329,6 @@ const Admin = () => {
       setSaving(false);
     }
   };
-
 
   // Stats
   const stats = {

@@ -17,6 +17,8 @@ export interface Profile {
   last_name: string | null;
   phone: string | null;
   is_admin: boolean;
+  // Credit balance (merged from credit_accounts)
+  credit_balance: number;
   // Billing information (merged from billing_profiles)
   company_name: string | null;
   vat_number: string | null;
@@ -66,12 +68,12 @@ export interface EnrichJob {
 
 export interface CreditTransaction {
   id: string;
-  credit_account_id: string;
+  user_id: string;
   amount: number;
   type: 'purchase' | 'enrich_deduction' | 'refund' | 'adjustment';
   description: string | null;
   related_job_id: string | null;
-  related_pack_id: string | null;
+  stripe_payment_intent_id: string | null;
   created_at: string;
 }
 

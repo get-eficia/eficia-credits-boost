@@ -70,7 +70,7 @@ const AdminUsers = () => {
   const loadUsersWithCredits = async () => {
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("user_id, email");
+      .select("user_id, email, credit_balance");
 
     if (profilesError) {
       console.error("Error loading profiles:", profilesError);
@@ -87,39 +87,13 @@ const AdminUsers = () => {
       return;
     }
 
-    const userIds = profiles.map((p) => p.user_id);
-
-    const { data: creditAccounts, error: accountsError } = await supabase
-      .from("credit_accounts")
-      .select("id, user_id, balance")
-      .in("user_id", userIds);
-
-    if (accountsError) {
-      console.error("Error loading credit accounts:", accountsError);
-      toast({
-        title: "Error",
-        description: "Failed to load credit accounts",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const accountMap = new Map<string, { id: string; balance: number | null }>(
-      (creditAccounts || []).map((acc) => [
-        acc.user_id,
-        { id: acc.id, balance: acc.balance ?? 0 },
-      ])
-    );
-
-    const mappedUsers: AdminUser[] = profiles.map((p: any) => {
-      const acc = accountMap.get(p.user_id);
-      return {
-        userId: p.user_id,
-        email: p.email,
-        creditAccountId: acc?.id ?? null,
-        balance: acc?.balance ?? 0,
-      };
-    });
+    // Map profiles to admin users (credit_balance is now in profiles table)
+    const mappedUsers: AdminUser[] = profiles.map((p: any) => ({
+      userId: p.user_id,
+      email: p.email,
+      creditAccountId: null, // No longer needed, kept for compatibility
+      balance: p.credit_balance ?? 0,
+    }));
 
     setUsers(mappedUsers);
   };
@@ -147,40 +121,22 @@ const AdminUsers = () => {
     setSavingForUser(user.userId);
 
     try {
-      let creditAccountId = user.creditAccountId;
-      let currentBalance = user.balance ?? 0;
-
-      if (!creditAccountId) {
-        const { data: newAccount, error: createError } = await supabase
-          .from("credit_accounts")
-          .insert({
-            user_id: user.userId,
-            balance: 0,
-          })
-          .select("id, balance")
-          .maybeSingle();
-
-        if (createError || !newAccount) {
-          throw createError || new Error("Failed to create credit account");
-        }
-
-        creditAccountId = newAccount.id;
-        currentBalance = newAccount.balance ?? 0;
-      }
-
+      const currentBalance = user.balance ?? 0;
       const newBalance = currentBalance + amount;
 
+      // Update credit_balance in profiles table
       const { error: updateError } = await supabase
-        .from("credit_accounts")
-        .update({ balance: newBalance })
-        .eq("id", creditAccountId);
+        .from("profiles")
+        .update({ credit_balance: newBalance })
+        .eq("user_id", user.userId);
 
       if (updateError) throw updateError;
 
+      // Record transaction
       const { error: txError } = await supabase
         .from("credit_transactions")
         .insert({
-          credit_account_id: creditAccountId,
+          user_id: user.userId,
           amount,
           type: "admin_adjustment",
           description: "Admin manual credit top-up",

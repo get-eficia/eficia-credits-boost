@@ -61,70 +61,36 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      // 1. Sign up with Supabase Auth
-      // The trigger will automatically create profile and credit_account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/app`,
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          },
+      // Call the complete-signup Edge Function that creates everything in one go
+      const { data, error } = await supabase.functions.invoke("complete-signup", {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone || undefined,
+          companyName: formData.companyName,
+          vatNumber: formData.vatNumber || undefined,
+          addressLine1: formData.addressLine1,
+          addressLine2: formData.addressLine2 || undefined,
+          postalCode: formData.postalCode,
+          city: formData.city,
+          country: formData.country,
         },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("No user returned");
+      if (error) throw error;
+      if (!data?.success) throw new Error("Signup failed");
 
-      const userId = authData.user.id;
-
-      // IMPORTANT: Set the session to authenticate the user immediately
-      // This ensures auth.uid() works in RLS policies
-      if (authData.session) {
-        await supabase.auth.setSession({
-          access_token: authData.session.access_token,
-          refresh_token: authData.session.refresh_token,
-        });
-      }
-
-      // Wait a bit for the trigger to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // 2. Update profile with phone and billing information
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          phone: formData.phone || null,
-          company_name: formData.companyName,
-          vat_number: formData.vatNumber || null,
-          billing_address: `${formData.addressLine1}${
-            formData.addressLine2 ? "\n" + formData.addressLine2 : ""
-          }`,
-          billing_city: formData.city,
-          billing_postal_code: formData.postalCode,
-          billing_country: formData.country,
-        })
-        .eq("user_id", userId);
-
-      if (profileError) {
-        console.error("Profile update error:", profileError);
-        toast({
-          title: "Warning",
-          description:
-            "Account created but profile information could not be saved. You can update it later.",
-          variant: "destructive",
-        });
-      }
+      console.log("Account created successfully:", data);
 
       toast({
-        title: "Welcome to Eficia!",
+        title: "Account created!",
         description:
-          "Your account has been created successfully. Please check your email to confirm.",
+          "Please check your email to confirm your account before signing in.",
       });
 
-      navigate("/app");
+      navigate("/signin");
     } catch (err: any) {
       console.error("Signup error:", err);
       toast({

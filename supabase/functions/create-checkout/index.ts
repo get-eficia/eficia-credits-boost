@@ -96,6 +96,19 @@ serve(async (req) => {
       mode: "payment",
       success_url: `${origin}/app?payment=success`,
       cancel_url: `${origin}/pricing?payment=cancel`,
+      // Enable automatic invoice creation and email
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          description: `Achat de ${pack.credits} crédits - ${pack.name}`,
+          metadata: {
+            pack_id: pack.id.toString(),
+            credits: pack.credits.toString(),
+          },
+          // Use billing info from profile if available
+          custom_fields: [],
+        },
+      },
       metadata: {
         pack_id: pack.id.toString(),
         credits: pack.credits.toString(),

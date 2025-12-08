@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
-  CreditAccount,
   CreditTransaction,
   EnrichJob,
   formatDate,
@@ -38,7 +37,7 @@ const Dashboard = () => {
 
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [credits, setCredits] = useState<CreditAccount | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number>(0);
   const [jobs, setJobs] = useState<EnrichJob[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -66,21 +65,22 @@ const Dashboard = () => {
   };
 
   const loadData = async (userId: string) => {
-    // Load credit account
-    const { data: creditData, error: creditError } = await supabase
-      .from("credit_accounts")
-      .select("*")
+    // Load profile with credit balance
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("credit_balance")
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (creditError) {
-      console.error("Error loading credit account:", creditError);
+    if (profileError) {
+      console.error("Error loading profile:", profileError);
+      setCreditBalance(0);
+    } else {
+      setCreditBalance(profileData?.credit_balance ?? 0);
     }
 
-    setCredits(creditData ?? null);
-
-    // Load jobs (on laisse la RLS filtrer par user_id)
-    const { data: jobsData, error: jobsError } = await supabase
+    // Load jobs (RLS filters by user_id automatically)
+    const { data: jobsData, error: jobsError} = await supabase
       .from("enrich_jobs")
       .select("*")
       .order("created_at", { ascending: false });
@@ -89,22 +89,21 @@ const Dashboard = () => {
       console.error("Error loading jobs:", jobsError);
       setJobs([]);
     } else {
-      console.log("Loaded jobs:", jobsData); // 👈 pour vérifier dans la console navigateur
+      console.log("Loaded jobs:", jobsData);
       setJobs(jobsData || []);
     }
 
-    // Load transactions
-    if (creditData) {
-      const { data: txData, error: txError } = await supabase
-        .from("credit_transactions")
-        .select("*")
-        .eq("credit_account_id", creditData.id)
-        .order("created_at", { ascending: false });
+    // Load transactions for this user
+    const { data: txData, error: txError } = await supabase
+      .from("credit_transactions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-      if (txError) {
-        console.error("Error loading transactions:", txError);
-      }
-
+    if (txError) {
+      console.error("Error loading transactions:", txError);
+      setTransactions([]);
+    } else {
       setTransactions(txData || []);
     }
   };
@@ -331,7 +330,7 @@ const Dashboard = () => {
     }
   };
 
-  const availableCredits = credits?.balance ?? 0;
+  const availableCredits = creditBalance;
   const hasCredits = availableCredits > 0;
 
   if (loading) {
@@ -370,7 +369,7 @@ const Dashboard = () => {
                   Available Credits
                 </p>
                 <p className="mt-1 font-display text-4xl font-bold text-eficia-violet">
-                  {credits?.balance?.toLocaleString() || 0}
+                  {creditBalance.toLocaleString()}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -605,7 +604,7 @@ const Dashboard = () => {
         </div>
 
         {/* Need more credits CTA */}
-        {credits && credits.balance < 100 && (
+        {creditBalance < 100 && (
           <div className="mt-8 rounded-xl gradient-bg p-6 text-center">
             <p className="font-display text-lg font-semibold text-accent-foreground">
               Running low on credits?
