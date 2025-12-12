@@ -45,32 +45,23 @@ serve(async (req) => {
 
     console.log("Creating user account for:", signupData.email);
 
-    // 1. Create auth user
+    // 1. Create auth user (email already confirmed)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: signupData.email,
       password: signupData.password,
-      email_confirm: false,
+      email_confirm: true, // Email is automatically confirmed
       user_metadata: {
         first_name: signupData.firstName,
         last_name: signupData.lastName,
       },
     });
 
-    // Generate and send confirmation email
+    // Send welcome email
     if (authData.user && !authError) {
-      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'signup',
-        email: signupData.email,
-      });
+      try {
+        const loginUrl = `${Deno.env.get("PUBLIC_SITE_URL") || "https://eficia-credits-boost.vercel.app"}/signin`;
 
-      if (!linkError && linkData) {
-        console.log("Confirmation link generated:", linkData.properties.action_link);
-
-        // Send confirmation email via Gmail SMTP
-        try {
-          const confirmLink = linkData.properties.action_link;
-
-          const emailHtml = `
+        const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -79,10 +70,10 @@ serve(async (req) => {
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .header { background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
     .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-    .info-box { background: white; border-left: 4px solid #667eea; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    .button { display: inline-block; background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+    .info-box { background: white; border-left: 4px solid #8B5CF6; padding: 15px; margin: 15px 0; border-radius: 5px; }
     .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
   </style>
 </head>
@@ -98,27 +89,29 @@ serve(async (req) => {
 
       <p>Thank you for creating an account with Eficia Credits Boost! We're excited to have you on board.</p>
 
-      <p>To complete your registration and start using our phone number enrichment service, please confirm your email address by clicking the button below:</p>
+      <p>Your account is ready to use. You can now log in and start enriching your contact data with verified phone numbers.</p>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${confirmLink}" class="button">✓ Confirm Email Address</a>
+        <a href="${loginUrl}" class="button">🚀 Access Your Dashboard</a>
       </div>
 
       <div class="info-box">
         <p style="margin: 0; font-size: 14px; color: #666;">
-          <strong>Account Details:</strong><br>
+          <strong>Your Account Details:</strong><br>
           Email: ${signupData.email}<br>
           Company: ${signupData.companyName}
         </p>
       </div>
 
-      <p style="color: #666; font-size: 14px; margin-top: 20px;">
-        If the button doesn't work, copy and paste this link into your browser:<br>
-        <a href="${confirmLink}" style="color: #667eea; word-break: break-all;">${confirmLink}</a>
-      </p>
+      <p><strong>What's next?</strong></p>
+      <ul style="color: #666;">
+        <li>Purchase credits to start enriching your data</li>
+        <li>Upload your CSV or Excel file with contact information</li>
+        <li>Get enriched results within 24 hours maximum</li>
+      </ul>
 
-      <p style="color: #666; font-size: 14px;">
-        If you didn't create this account, you can safely ignore this email.
+      <p style="color: #666; font-size: 14px; margin-top: 20px;">
+        If you didn't create this account, please contact us immediately.
       </p>
 
       <p style="margin-top: 30px;">
@@ -134,44 +127,43 @@ serve(async (req) => {
   </div>
 </body>
 </html>
-          `;
+        `;
 
-          const gmailUser = Deno.env.get("GMAIL_USER");
-          const gmailPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+        const gmailUser = Deno.env.get("GMAIL_USER");
+        const gmailPassword = Deno.env.get("GMAIL_APP_PASSWORD");
 
-          if (!gmailUser || !gmailPassword) {
-            console.error("Gmail credentials not configured");
-            throw new Error("Email service not configured");
-          }
-
-          // Create SMTP client
-          const smtpClient = new SMTPClient({
-            connection: {
-              hostname: "smtp.gmail.com",
-              port: 465,
-              tls: true,
-              auth: {
-                username: gmailUser,
-                password: gmailPassword,
-              },
-            },
-          });
-
-          await smtpClient.send({
-            from: `Eficia Credits Boost <${gmailUser}>`,
-            to: signupData.email,
-            subject: "🎉 Confirm your email - Eficia Credits Boost",
-            content: "auto",
-            html: emailHtml,
-          });
-
-          await smtpClient.close();
-
-          console.log(`Confirmation email sent successfully to ${signupData.email}`);
-        } catch (emailErr) {
-          console.error("Error sending confirmation email:", emailErr);
-          // Don't throw - account was created, user can request new confirmation email
+        if (!gmailUser || !gmailPassword) {
+          console.error("Gmail credentials not configured");
+          throw new Error("Email service not configured");
         }
+
+        // Create SMTP client
+        const smtpClient = new SMTPClient({
+          connection: {
+            hostname: "smtp.gmail.com",
+            port: 465,
+            tls: true,
+            auth: {
+              username: gmailUser,
+              password: gmailPassword,
+            },
+          },
+        });
+
+        await smtpClient.send({
+          from: `Eficia Credits Boost <${gmailUser}>`,
+          to: signupData.email,
+          subject: "🎉 Welcome to Eficia Credits Boost!",
+          content: "auto",
+          html: emailHtml,
+        });
+
+        await smtpClient.close();
+
+        console.log(`Welcome email sent successfully to ${signupData.email}`);
+      } catch (emailErr) {
+        console.error("Error sending welcome email:", emailErr);
+        // Don't throw - account was created successfully
       }
     }
 
