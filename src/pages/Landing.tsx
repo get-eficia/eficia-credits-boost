@@ -6,11 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
   CheckCircle2,
-  Clock,
-  Download,
-  Shield,
+  Database,
+  DollarSign,
   Sparkles,
-  Upload,
   Zap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -29,33 +27,36 @@ const Landing = () => {
         </div>
 
         <div className="container relative mx-auto">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div className="grid items-center gap-16 lg:grid-cols-[1.2fr,0.8fr]">
             <div className="space-y-8">
               <div className="inline-flex items-center rounded-full border border-border bg-card px-4 py-2 text-sm">
                 <Sparkles className="mr-2 h-4 w-4 text-eficia-violet" />
-                <span>Trusted by 500+ companies</span>
+                <span>Waterfall Enrichment Platform</span>
               </div>
 
               <h1 className="font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-                Find More Phone Numbers
-                <span className="gradient-text"> Than Any Other Provider</span>
+                <span className="block gradient-text-subtle">
+                  Find More Phone Numbers
+                </span>
+                <span className="block text-foreground">
+                  than with any other provider
+                </span>
+                <span className="relative block">
+                  <span style={{ color: "#171717CC" }}>No Subscription</span>
+                  <span className="shimmer-effect-slow"></span>
+                </span>
               </h1>
 
               <p className="text-lg text-muted-foreground md:text-xl">
-                We tested all the providers. We built the one we'd actually pay
-                for —
-                <span className="font-semibold text-foreground">
-                  {" "}
-                  cheaper, better, no subscription
-                </span>
-                .
+                We tested all the providers out there. We built the one we'd
+                actually pay for — cheaper, better, no commitment.
               </p>
 
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Link to="/signup">
                   <Button
                     size="lg"
-                    className="gradient-bg w-full text-accent-foreground hover:opacity-90 sm:w-auto"
+                    className="gradient-bg w-full text-white hover:opacity-90 sm:w-auto"
                   >
                     Start Enriching
                     <ArrowRight className="ml-2 h-5 w-5" />
@@ -96,96 +97,11 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Logos section */}
-      <section className="border-y border-border bg-card/50 py-12">
-        <div className="container mx-auto px-4">
-          <p className="mb-8 text-center text-sm font-medium text-muted-foreground">
-            TRUSTED BY INNOVATIVE COMPANIES
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 opacity-60 grayscale md:gap-16">
-            {[
-              "TechCorp",
-              "StartupIO",
-              "FinanceHQ",
-              "MediaGroup",
-              "RetailPro",
-            ].map((name) => (
-              <div
-                key={name}
-                className="font-display text-xl font-bold text-muted-foreground"
-              >
-                {name}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="px-4 py-20 md:py-32">
-        <div className="container mx-auto">
-          <div className="mx-auto mb-16 max-w-2xl text-center">
-            <h2 className="mb-4 font-display text-3xl font-bold md:text-4xl">
-              How It Works
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Three simple steps to enrich your contact data with verified phone
-              numbers.
-            </p>
-          </div>
-
-          <div className="grid gap-8 md:grid-cols-3">
-            {[
-              {
-                icon: Upload,
-                step: "01",
-                title: "Upload Your File",
-                description:
-                  "Upload your CSV or Excel file with contact information. We support any format.",
-              },
-              {
-                icon: Sparkles,
-                step: "02",
-                title: "We Enrich Your Data",
-                description:
-                  "Our algorithms search multiple databases to find the most accurate phone numbers.",
-              },
-              {
-                icon: Download,
-                step: "03",
-                title: "Download Results",
-                description:
-                  "Get your enriched file within 24 hours. Only pay for numbers we actually find.",
-              },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="group relative rounded-2xl border border-border bg-card p-8 transition-all hover:border-eficia-violet/50 hover:shadow-lg"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <div className="mb-6 flex items-start justify-between">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary transition-colors group-hover:bg-eficia-violet/10">
-                    <item.icon className="h-7 w-7 text-foreground transition-colors group-hover:text-eficia-violet" />
-                  </div>
-                  <span className="font-display text-4xl font-bold text-border">
-                    {item.step}
-                  </span>
-                </div>
-                <h3 className="mb-3 font-display text-xl font-semibold">
-                  {item.title}
-                </h3>
-                <p className="text-muted-foreground">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
       <section className="bg-card px-4 py-20 md:py-32">
         <div className="container mx-auto">
           <div className="mx-auto mb-12 max-w-2xl text-center">
-            <h2 className="mb-4 font-display text-3xl font-bold md:text-4xl">
+            <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
               Simple, <span className="gradient-text">Transparent Pricing</span>
             </h2>
             <p className="text-lg text-muted-foreground">
@@ -199,84 +115,121 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* Features */}
+      {/* Why Choose Eficia - 3 Cards */}
       <section className="px-4 py-20 md:py-32">
         <div className="container mx-auto">
-          <div className="mx-auto mb-12 max-w-2xl text-center">
-            <h2 className="font-display text-3xl font-bold md:text-4xl">
-              Why Companies Choose Eficia
+          <div className="mx-auto mb-12 max-w-3xl text-center">
+            <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
+              Finally, One Platform for{" "}
+              <span className="gradient-text">all Enrichment Data</span>
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              We've built the enrichment service we always wanted — transparent,
-              affordable, and actually effective.
+            <p className="text-lg text-muted-foreground">
+              The smartest way to enrich your data
             </p>
           </div>
 
-          <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
+          <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-3">
             {[
               {
-                icon: Shield,
-                title: "GDPR Compliant",
+                icon: DollarSign,
+                title: "Pay Per Use",
                 description:
-                  "All data processing is fully compliant with European privacy regulations.",
+                  "Most providers want to charge you a subscription fee, even though you don't need one. With us, you pay for what you use.",
+              },
+              {
+                icon: Database,
+                title: "Waterfall Enrichment",
+                description:
+                  "All providers sell you waterfall enrichment as if it were an extraordinary feature. It's basic. We find more numbers than any of these providers, and we can prove it.",
               },
               {
                 icon: Zap,
-                title: "Highest Match Rates",
-                description:
-                  "Our multi-source approach consistently delivers 90%+ match rates.",
-              },
-              {
-                icon: Clock,
-                title: "Fast Turnaround",
-                description:
-                  "Most files are processed within hours, never more than 24h.",
+                title: "We can even help you scrape your data",
+                description: (
+                  <>
+                    If you waste time making lists, we can show you how to
+                    easily scrape data to enrich it later. We can even make
+                    these lists for you. Just make an appointment{" "}
+                    <a
+                      href="https://calendly.com/samuel-get-eficia/30min?month=2025-12"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="gradient-text hover:opacity-80 font-semibold"
+                    >
+                      right here
+                    </a>
+                    .
+                  </>
+                ),
               },
             ].map((item, i) => (
               <div
                 key={i}
-                className="rounded-2xl border border-border bg-card p-6 text-center"
+                className="rounded-2xl border border-border bg-card p-8"
               >
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-eficia-violet/10">
-                  <item.icon className="h-6 w-6 text-eficia-violet" />
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-xl gradient-icon-bg">
+                  <item.icon className="h-8 w-8 text-white" />
                 </div>
-                <h4 className="mb-2 font-display text-lg font-semibold">
+                <h3 className="mb-4 font-display text-xl font-bold">
                   {item.title}
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  {item.description}
-                </p>
+                </h3>
+                <p className="text-muted-foreground">{item.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="px-4 py-20 md:py-32">
+      {/* How it works */}
+      <section className="bg-muted/30 px-4 py-20 md:py-32">
         <div className="container mx-auto">
-          <div className="relative overflow-hidden rounded-3xl gradient-bg p-12 text-center md:p-20">
-            <div className="relative z-10">
-              <h2 className="mb-4 font-display text-3xl font-bold text-accent-foreground md:text-4xl">
-                Ready to Enrich Your Data?
-              </h2>
-              <p className="mx-auto mb-8 max-w-xl text-lg text-accent-foreground/80">
-                Join hundreds of companies using Eficia to find accurate phone
-                numbers for their contacts.
-              </p>
-              <Link to="/signup">
-                <Button size="lg" variant="secondary" className="font-semibold">
-                  Start Enriching Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </div>
+          <div className="mx-auto mb-16 max-w-2xl text-center">
+            <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
+              <span className="gradient-text">How It Works</span>
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Three simple steps to enriched data
+            </p>
+          </div>
 
-            {/* Background decoration */}
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
-              <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-white/10" />
-            </div>
+          <div className="mx-auto max-w-4xl space-y-6">
+            {[
+              {
+                step: "1",
+                title: "Upload Your File",
+                description:
+                  "Simply upload your CSV or Excel file with the contact information you want to enrich. Drag, drop, done.",
+              },
+              {
+                step: "2",
+                title: "We Enrich Your Data",
+                description:
+                  "Our waterfall system intelligently enriches your data using the most cost-effective sources first, maximizing ROI.",
+              },
+              {
+                step: "3",
+                title: "Download Enriched Results",
+                description:
+                  "Receive an email notification when complete, then download your enriched file with all the data you need.",
+              },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-6 rounded-2xl border border-border bg-card p-8"
+              >
+                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl gradient-icon-bg">
+                  <span className="font-display text-2xl font-bold text-white">
+                    {item.step}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="mb-2 font-display text-xl font-bold">
+                    {item.title}
+                  </h3>
+                  <p className="text-muted-foreground">{item.description}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

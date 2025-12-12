@@ -69,6 +69,16 @@ export const Header = () => {
           <img src={eficiaLogo} alt="Eficia" className="h-14 w-auto" />
         </Link>
 
+        {/* Center link - Desktop only */}
+        <a
+          href="https://calendly.com/samuel-get-eficia/30min?month=2025-12"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden md:block text-base font-semibold transition-colors hover:opacity-90"
+        >
+          Ask your <span className="gradient-text">free-trial</span>
+        </a>
+
         {/* Desktop nav */}
         <nav className="hidden items-center gap-6 md:flex">
           <Link
@@ -157,6 +167,15 @@ export const Header = () => {
             >
               Pricing
             </Link>
+            <a
+              href="https://calendly.com/samuel-get-eficia/30min?month=2025-12"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-base font-semibold"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Ask your <span className="gradient-text">free-trial</span>
+            </a>
             {user ? (
               <>
                 {/* Dashboard visible uniquement si NON admin */}

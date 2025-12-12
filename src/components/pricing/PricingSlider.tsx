@@ -194,9 +194,6 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
 
   const price = calculatePrice(amount);
   const pricePerCredit = getPricePerCredit(amount);
-  const selectedPack = getSelectedPack();
-  const basePricePerCredit = 0.29;
-  const savingsPercent = Math.round((1 - pricePerCredit / basePricePerCredit) * 100);
 
   return (
     <div className={`rounded-2xl border border-border bg-card ${compact ? "p-6" : "p-8 md:p-12"}`}>
@@ -206,20 +203,6 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
           Adjust the slider to see how many numbers you want to enrich
         </p>
       </div>
-
-      {/* Pack Name and Popular Badge */}
-      {selectedPack && (
-        <div className="mb-4 flex items-center justify-center gap-2">
-          <span className="font-display text-lg font-semibold text-eficia-violet">
-            {selectedPack.name}
-          </span>
-          {selectedPack.is_popular && (
-            <span className="rounded-full bg-eficia-violet px-3 py-1 text-xs font-semibold text-white">
-              ⭐ Most Popular
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Amount and Price Display */}
       <div className="mb-6 flex items-end justify-between">
@@ -234,11 +217,6 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
           <p className="text-sm text-muted-foreground">
             {formatPrice(pricePerCredit)} per number
           </p>
-          {savingsPercent > 0 && (
-            <p className="text-xs font-semibold text-green-600">
-              Save {savingsPercent}% vs base price
-            </p>
-          )}
         </div>
       </div>
 
@@ -276,9 +254,14 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
         <span className="text-muted-foreground">
           If you want to lower prices because you anticipate a need for volume:{" "}
         </span>
-        <Link to="/contact" className="font-medium text-eficia-violet hover:underline">
+        <a
+          href="https://calendly.com/samuel-get-eficia/30min?month=2025-12"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold gradient-text hover:opacity-80"
+        >
           book an appointment here
-        </Link>
+        </a>
         <span className="text-muted-foreground">, we offer credit packs.</span>
       </div>
 

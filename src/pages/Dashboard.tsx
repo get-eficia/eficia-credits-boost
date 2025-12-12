@@ -109,6 +109,18 @@ const Dashboard = () => {
   };
 
   const validateFile = (file: File): boolean => {
+    // Check for special characters and accents in filename (spaces and parentheses are allowed)
+    const filename = file.name;
+    const hasSpecialChars = /[àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ\[\]\{\}&@#$%^*+=|\\;:'"<>,?/!~`]/.test(filename);
+
+    if (hasSpecialChars) {
+      toast({
+        title: "Invalid filename",
+        description: "Please rename your file without special characters or accents. Use only letters (a-z, A-Z), numbers (0-9), spaces, parentheses ( ), hyphens (-), and underscores (_).",
+      });
+      return false;
+    }
+
     const validTypes = [
       "text/csv",
       "application/vnd.ms-excel",
@@ -493,6 +505,14 @@ const Dashboard = () => {
             </div>
           )}
 
+          <div className="mt-3 flex items-start gap-2 rounded-lg bg-muted/50 p-3">
+            <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              <strong>Important:</strong> Your file name must not contain special characters or accents.
+              Use only letters (a-z, A-Z), numbers (0-9), spaces, parentheses ( ), hyphens (-), and underscores (_).
+            </p>
+          </div>
+
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle2 className="h-4 w-4 text-eficia-violet" />
             Your file will be processed within 24 hours maximum
@@ -542,60 +562,75 @@ const Dashboard = () => {
                 </thead>
                 <tbody>
                   {jobs.map((job) => (
-                    <tr
-                      key={job.id}
-                      className="border-b border-border last:border-0"
-                    >
-                      <td className="px-6 py-4 text-sm">
-                        {formatDate(job.created_at)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">
-                            {job.original_filename}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(
-                            job.status
-                          )}`}
-                        >
-                          {getStatusIcon(job.status)}
-                          {job.status.charAt(0).toUpperCase() +
-                            job.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {job.numbers_found !== null
-                          ? job.numbers_found?.toLocaleString()
-                          : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {job.credited_numbers !== null
-                          ? job.credited_numbers?.toLocaleString()
-                          : "-"}
-                      </td>
-                      <td className="px-6 py-4">
-                        {job.status === "completed" &&
-                        (job.enriched_file_url || job.enriched_file_path) ? (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDownload(job)}
+                    <>
+                      <tr
+                        key={job.id}
+                        className="border-b border-border last:border-0"
+                      >
+                        <td className="px-6 py-4 text-sm">
+                          {formatDate(job.created_at)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">
+                              {job.original_filename}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(
+                              job.status
+                            )}`}
                           >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                          </Button>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            {job.status === "error" ? "Failed" : "Pending"}
+                            {getStatusIcon(job.status)}
+                            {job.status.charAt(0).toUpperCase() +
+                              job.status.slice(1)}
                           </span>
-                        )}
-                      </td>
-                    </tr>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {job.numbers_found !== null
+                            ? job.numbers_found?.toLocaleString()
+                            : "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {job.credited_numbers !== null
+                            ? job.credited_numbers?.toLocaleString()
+                            : "-"}
+                        </td>
+                        <td className="px-6 py-4">
+                          {job.status === "completed" &&
+                          (job.enriched_file_url || job.enriched_file_path) ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDownload(job)}
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              Download
+                            </Button>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              {job.status === "error" ? "Failed" : "Pending"}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                      {job.admin_note && (
+                        <tr key={`${job.id}-note`} className="border-b border-border bg-secondary/30">
+                          <td colSpan={6} className="px-6 py-3">
+                            <div className="flex items-start gap-2">
+                              <AlertCircle className="h-4 w-4 text-eficia-violet mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-xs font-medium text-eficia-violet">Admin Note</p>
+                                <p className="text-sm text-muted-foreground mt-1">{job.admin_note}</p>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   ))}
                 </tbody>
               </table>

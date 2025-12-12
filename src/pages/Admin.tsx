@@ -156,7 +156,6 @@ const Admin = () => {
     setSelectedJob(job);
     setEditedJob({
       status: job.status,
-      total_rows: job.total_rows,
       numbers_found: job.numbers_found,
       credited_numbers: job.credited_numbers,
       admin_note: job.admin_note,
@@ -173,7 +172,6 @@ const Admin = () => {
     try {
       const updates: any = {
         status: editedJob.status,
-        total_rows: editedJob.total_rows,
         numbers_found: editedJob.numbers_found,
         credited_numbers: editedJob.credited_numbers,
         admin_note: editedJob.admin_note,
@@ -573,22 +571,6 @@ const Admin = () => {
                       <SelectItem value="error">Error</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="totalRows">Total Rows</Label>
-                  <Input
-                    id="totalRows"
-                    type="number"
-                    value={editedJob.total_rows || ""}
-                    onChange={(e) =>
-                      setEditedJob((prev) => ({
-                        ...prev,
-                        total_rows: parseInt(e.target.value) || undefined,
-                      }))
-                    }
-                    className="mt-1"
-                  />
                 </div>
 
                 <div>
