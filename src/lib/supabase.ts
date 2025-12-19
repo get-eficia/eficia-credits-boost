@@ -78,10 +78,12 @@ export interface CreditTransaction {
 }
 
 // Helper functions
-export const formatPrice = (price: number): string => {
+export const formatPrice = (price: number, options?: { keepDecimals?: boolean }): string => {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'EUR',
+    minimumFractionDigits: options?.keepDecimals ? 2 : 0,
+    maximumFractionDigits: options?.keepDecimals ? 2 : 0,
   }).format(price);
 };
 

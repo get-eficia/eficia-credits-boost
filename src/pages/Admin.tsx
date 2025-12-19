@@ -53,6 +53,19 @@ const Admin = () => {
   const [editedJob, setEditedJob] = useState<Partial<EnrichJob>>({});
   const [saving, setSaving] = useState(false);
 
+  const getStatusLabel = (status: EnrichJob["status"]) => {
+    switch (status) {
+      case "uploaded":
+        return "Enriching";
+      case "processing":
+        return "Processing";
+      case "completed":
+        return "Completed";
+      case "error":
+        return "Error";
+    }
+  };
+
   useEffect(() => {
     checkAdminAndLoadData();
   }, []);
@@ -156,7 +169,6 @@ const Admin = () => {
     setSelectedJob(job);
     setEditedJob({
       status: job.status,
-      numbers_found: job.numbers_found,
       credited_numbers: job.credited_numbers,
       admin_note: job.admin_note,
       enriched_file_path: job.enriched_file_path,
@@ -172,7 +184,6 @@ const Admin = () => {
     try {
       const updates: any = {
         status: editedJob.status,
-        numbers_found: editedJob.numbers_found,
         credited_numbers: editedJob.credited_numbers,
         admin_note: editedJob.admin_note,
         enriched_file_path: editedJob.enriched_file_path,
@@ -295,7 +306,7 @@ const Admin = () => {
                 jobId: selectedJob.id,
                 userId: selectedJob.user_id,
                 filename: selectedJob.original_filename,
-                numbersFound: editedJob.numbers_found || 0,
+                numbersFound: editedJob.credited_numbers || 0,
                 creditedNumbers: editedJob.credited_numbers || 0,
                 enrichedFileUrl: editedJob.enriched_file_url || null,
               },
@@ -332,7 +343,7 @@ const Admin = () => {
   const stats = {
     total: jobs.length,
     pending: jobs.filter((j) => j.status === "uploaded").length,
-    processing: jobs.filter((j) => j.status === "processing").length,
+    error: jobs.filter((j) => j.status === "error").length,
     completed: jobs.filter((j) => j.status === "completed").length,
   };
 
@@ -395,7 +406,7 @@ const Admin = () => {
                 <Clock className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-sm text-muted-foreground">Enriching</p>
                 <p className="font-display text-2xl font-bold">
                   {stats.pending}
                 </p>
@@ -404,13 +415,13 @@ const Admin = () => {
           </div>
           <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                <Loader2 className="h-5 w-5 text-blue-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Processing</p>
+                <p className="text-sm text-muted-foreground">Error</p>
                 <p className="font-display text-2xl font-bold">
-                  {stats.processing}
+                  {stats.error}
                 </p>
               </div>
             </div>
@@ -464,9 +475,6 @@ const Admin = () => {
                       Numbers
                     </th>
                     <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
-                      Credits
-                    </th>
-                    <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
                       Action
                     </th>
                   </tr>
@@ -482,12 +490,39 @@ const Admin = () => {
                       </td>
                       <td className="px-6 py-4 text-sm">{job.userEmail}</td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const { data, error } = await supabase.storage
+                                .from("enrich-uploads")
+                                .download(job.original_file_path);
+
+                              if (error) throw error;
+
+                              const url = URL.createObjectURL(data);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = job.original_filename;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            } catch (error: any) {
+                              console.error("Download error:", error);
+                              toast({
+                                title: "Download failed",
+                                description: error.message || "Failed to download file",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          className="flex items-center gap-2 hover:text-eficia-violet transition-colors"
+                        >
                           <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-                          <span className="max-w-[200px] truncate text-sm font-medium">
+                          <span className="max-w-[200px] truncate text-sm font-medium underline">
                             {job.original_filename}
                           </span>
-                        </div>
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -495,18 +530,12 @@ const Admin = () => {
                             job.status
                           )}`}
                         >
-                          {job.status.charAt(0).toUpperCase() +
-                            job.status.slice(1)}
+                          {getStatusLabel(job.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {job.numbers_found !== null
                           ? job.numbers_found?.toLocaleString()
-                          : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {job.credited_numbers !== null
-                          ? job.credited_numbers?.toLocaleString()
                           : "-"}
                       </td>
                       <td className="px-6 py-4">
@@ -565,28 +594,11 @@ const Admin = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="uploaded">Uploaded</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
+                      <SelectItem value="uploaded">Enriching</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="error">Error</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="numbersFound">Numbers Found</Label>
-                  <Input
-                    id="numbersFound"
-                    type="number"
-                    value={editedJob.numbers_found || ""}
-                    onChange={(e) =>
-                      setEditedJob((prev) => ({
-                        ...prev,
-                        numbers_found: parseInt(e.target.value) || undefined,
-                      }))
-                    }
-                    className="mt-1"
-                  />
                 </div>
 
                 <div>

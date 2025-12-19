@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
-import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { formatPrice, supabase } from "@/lib/supabase";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Loader2, ShoppingCart } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice, supabase } from "@/lib/supabase";
+import { ArrowRight, Loader2, ShoppingCart } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 interface PricingTier {
   credits: number;
@@ -32,7 +32,10 @@ interface CreditPack {
   is_popular: boolean;
 }
 
-export const PricingSlider = ({ showCta = true, compact = false }: PricingSliderProps) => {
+export const PricingSlider = ({
+  showCta = true,
+  compact = false,
+}: PricingSliderProps) => {
   const [sliderIndex, setSliderIndex] = useState(1);
   const [amount, setAmount] = useState(200);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
@@ -59,7 +62,12 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
       // Fallback tiers matching new structure
       const fallbackSteps = [50, 100, 200, 500, 1000, 2500, 5000, 10000];
       setSliderSteps(fallbackSteps);
-      setPricingTiers(fallbackSteps.map(c => ({ credits: c, pricePerCredit: 0.29 - (c / 10000) * 0.17 })));
+      setPricingTiers(
+        fallbackSteps.map((c) => ({
+          credits: c,
+          pricePerCredit: 0.29 - (c / 10000) * 0.17,
+        }))
+      );
       setAmount(fallbackSteps[3]); // Default to 500 (Professional)
       setLoading(false);
       return;
@@ -79,14 +87,15 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
       pricePerCredit: pack.price_per_credit,
     }));
 
-    const steps = tiers.map(t => t.credits);
+    const steps = tiers.map((t) => t.credits);
 
     setCreditPacks(packs);
     setSliderSteps(steps);
     setPricingTiers(tiers);
     // Default to Professional pack (500 credits) if available
-    const defaultIndex = steps.findIndex(s => s === 500);
-    const index = defaultIndex >= 0 ? defaultIndex : Math.min(3, steps.length - 1);
+    const defaultIndex = steps.findIndex((s) => s === 500);
+    const index =
+      defaultIndex >= 0 ? defaultIndex : Math.min(3, steps.length - 1);
     setAmount(steps[index]);
     setSliderIndex(index);
     setLoading(false);
@@ -94,16 +103,20 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
 
   const getSelectedPack = (): CreditPack | undefined => {
     // Find pack matching the current amount (from slider or custom)
-    return creditPacks.find(p => p.credits === amount) || creditPacks[sliderIndex];
+    return (
+      creditPacks.find((p) => p.credits === amount) || creditPacks[sliderIndex]
+    );
   };
 
   const handleBuyNow = async () => {
     setPurchasing(true);
-    
+
     try {
       // Check if user is logged in
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session) {
         toast({
           title: "Connexion requise",
@@ -126,15 +139,20 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
 
       // Call the create-checkout edge function
       console.log("Calling create-checkout with pack_id:", selectedPack.id);
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { pack_id: selectedPack.id },
-      });
+      const { data, error } = await supabase.functions.invoke(
+        "create-checkout",
+        {
+          body: { pack_id: selectedPack.id },
+        }
+      );
 
       console.log("Response:", { data, error });
 
       if (error) {
         console.error("Edge function error:", error);
-        throw new Error(error.message || "Failed to send a request to the Edge Function");
+        throw new Error(
+          error.message || "Failed to send a request to the Edge Function"
+        );
       }
 
       if (data?.url) {
@@ -147,7 +165,8 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
       console.error("Checkout error:", error);
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Une erreur est survenue",
+        description:
+          error instanceof Error ? error.message : "Une erreur est survenue",
         variant: "destructive",
       });
     } finally {
@@ -157,7 +176,7 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
 
   const getPricePerCredit = (targetAmount: number): number => {
     if (pricingTiers.length === 0) return 0.29;
-    
+
     // Trouver le palier le plus proche (inférieur ou égal)
     let selectedTier = pricingTiers[0];
     for (const tier of pricingTiers) {
@@ -186,7 +205,11 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
 
   if (loading) {
     return (
-      <div className={`flex items-center justify-center rounded-2xl border border-border bg-card ${compact ? "p-6" : "p-8 md:p-12"}`}>
+      <div
+        className={`flex items-center justify-center rounded-2xl border border-border bg-card ${
+          compact ? "p-6" : "p-8 md:p-12"
+        }`}
+      >
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -194,29 +217,50 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
 
   const price = calculatePrice(amount);
   const pricePerCredit = getPricePerCredit(amount);
+  const isEnterprisePack = amount >= 10000;
 
   return (
-    <div className={`rounded-2xl border border-border bg-card ${compact ? "p-6" : "p-8 md:p-12"}`}>
-      <div className="mb-8 text-center">
-        <h3 className="font-display text-2xl font-bold">Calculate Your Price</h3>
-        <p className="mt-2 text-muted-foreground">
-          Adjust the slider to see how many numbers you want to enrich
-        </p>
-      </div>
-
+    <div
+      className={`rounded-2xl border border-border bg-card ${
+        compact ? "p-6" : "p-8 md:p-12"
+      }`}
+    >
       {/* Amount and Price Display */}
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <span className="font-display text-4xl font-bold">{amount.toLocaleString()}</span>
+          <span className="font-display text-4xl font-bold">
+            {amount.toLocaleString()}
+          </span>
           <span className="ml-2 text-muted-foreground">numbers</span>
         </div>
         <div className="text-right">
-          <span className="font-display text-4xl font-bold text-eficia-violet">
-            {formatPrice(price)}
-          </span>
-          <p className="text-sm text-muted-foreground">
-            {formatPrice(pricePerCredit)} per number
-          </p>
+          {isEnterprisePack ? (
+            <div className="flex flex-col items-end gap-2">
+              <a
+                href="https://calendly.com/samuel-get-eficia/30min"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gradient-text border-eficia-violet hover:bg-eficia-violet/10"
+                >
+                  Talk to Sales
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </a>
+            </div>
+          ) : (
+            <>
+              <span className="font-display text-4xl font-bold text-eficia-violet">
+                {formatPrice(price)}
+              </span>
+              <p className="text-sm text-muted-foreground">
+                {formatPrice(pricePerCredit, { keepDecimals: true })} per number
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -255,23 +299,22 @@ export const PricingSlider = ({ showCta = true, compact = false }: PricingSlider
           If you want to lower prices because you anticipate a need for volume:{" "}
         </span>
         <a
-          href="https://calendly.com/samuel-get-eficia/30min?month=2025-12"
+          href="https://calendly.com/samuel-get-eficia/30min"
           target="_blank"
           rel="noopener noreferrer"
           className="font-semibold gradient-text hover:opacity-80"
         >
-          book an appointment here
+          book an appointment here.
         </a>
-        <span className="text-muted-foreground">, we offer credit packs.</span>
       </div>
 
       {/* CTA Button */}
-      {showCta && (
+      {showCta && !isEnterprisePack && (
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button 
+          <Button
             onClick={handleBuyNow}
             disabled={purchasing || !getSelectedPack()}
-            className="flex-1 gradient-bg text-accent-foreground hover:opacity-90" 
+            className="flex-1 gradient-bg text-accent-foreground hover:opacity-90"
             size="lg"
           >
             {purchasing ? (

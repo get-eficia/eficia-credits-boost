@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -30,6 +31,24 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+// Normalize filename by removing accents and special characters
+const normalizeFilename = (filename: string): string => {
+  // Split filename into name and extension
+  const lastDotIndex = filename.lastIndexOf(".");
+  const name = lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename;
+  const extension = lastDotIndex !== -1 ? filename.slice(lastDotIndex) : "";
+
+  // Remove accents and normalize
+  const normalized = name
+    .normalize("NFD") // Decompose combined characters
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+    .replace(/[^a-zA-Z0-9\s\-_()]/g, "") // Keep only alphanumeric, spaces, hyphens, underscores, parentheses
+    .replace(/\s+/g, " ") // Replace multiple spaces with single space
+    .trim();
+
+  return normalized + extension.toLowerCase();
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -44,6 +63,8 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showProcessingDialog, setShowProcessingDialog] = useState(false);
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -80,7 +101,7 @@ const Dashboard = () => {
     }
 
     // Load jobs (RLS filters by user_id automatically)
-    const { data: jobsData, error: jobsError} = await supabase
+    const { data: jobsData, error: jobsError } = await supabase
       .from("enrich_jobs")
       .select("*")
       .order("created_at", { ascending: false });
@@ -109,18 +130,7 @@ const Dashboard = () => {
   };
 
   const validateFile = (file: File): boolean => {
-    // Check for special characters and accents in filename (spaces and parentheses are allowed)
-    const filename = file.name;
-    const hasSpecialChars = /[àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ\[\]\{\}&@#$%^*+=|\\;:'"<>,?/!~`]/.test(filename);
-
-    if (hasSpecialChars) {
-      toast({
-        title: "Invalid filename",
-        description: "Please rename your file without special characters or accents. Use only letters (a-z, A-Z), numbers (0-9), spaces, parentheses ( ), hyphens (-), and underscores (_).",
-      });
-      return false;
-    }
-
+    // Check file type
     const validTypes = [
       "text/csv",
       "application/vnd.ms-excel",
@@ -141,6 +151,16 @@ const Dashboard = () => {
       });
       return false;
     }
+
+    // Check if filename will be normalized (contains accents or special characters)
+    const normalizedName = normalizeFilename(file.name);
+    if (normalizedName !== file.name) {
+      toast({
+        title: "Filename will be normalized",
+        description: `Your file "${file.name}" will be saved as "${normalizedName}"`,
+      });
+    }
+
     return true;
   };
 
@@ -202,7 +222,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleUpload = async () => {
+  const handleStartEnrichment = () => {
     if (!selectedFile || !user) return;
 
     if (!hasCredits) {
@@ -214,12 +234,27 @@ const Dashboard = () => {
       return;
     }
 
+    // Open confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!selectedFile || !user) return;
+
+    // Close confirmation dialog
+    setShowConfirmDialog(false);
+
+    // Show processing dialog
+    setShowProcessingDialog(true);
     setUploading(true);
 
     try {
-      const filePath = `uploads/${user.id}/${crypto.randomUUID()}/${
-        selectedFile.name
-      }`;
+      // Normalize filename to remove accents and special characters
+      const normalizedFilename = normalizeFilename(selectedFile.name);
+
+      const filePath = `uploads/${
+        user.id
+      }/${crypto.randomUUID()}/${normalizedFilename}`;
 
       const { error: uploadError } = await supabase.storage
         .from("enrich-uploads")
@@ -231,7 +266,7 @@ const Dashboard = () => {
         .from("enrich_jobs")
         .insert({
           user_id: user.id,
-          original_filename: selectedFile.name,
+          original_filename: normalizedFilename,
           original_file_path: filePath,
           status: "uploaded",
         })
@@ -253,7 +288,7 @@ const Dashboard = () => {
               body: {
                 jobId: jobData.id,
                 userId: user.id,
-                filename: selectedFile.name,
+                filename: normalizedFilename,
                 filePath: filePath,
               },
             }
@@ -275,10 +310,8 @@ const Dashboard = () => {
       await loadData(user.id);
       setSelectedFile(null);
 
-      toast({
-        title: "File uploaded successfully!",
-        description: "We will enrich your data within 24 hours maximum.",
-      });
+      // Close processing dialog on success
+      setShowProcessingDialog(false);
     } catch (error: any) {
       console.error("Upload error:", error);
       toast({
@@ -286,6 +319,8 @@ const Dashboard = () => {
         description: error.message || "Something went wrong",
         variant: "destructive",
       });
+      // Close processing dialog on error
+      setShowProcessingDialog(false);
     } finally {
       setUploading(false);
     }
@@ -332,13 +367,26 @@ const Dashboard = () => {
   const getStatusIcon = (status: EnrichJob["status"]) => {
     switch (status) {
       case "uploaded":
-        return <Clock className="h-4 w-4" />;
+        return <Loader2 className="h-4 w-4 animate-spin" />;
       case "processing":
         return <Loader2 className="h-4 w-4 animate-spin" />;
       case "completed":
         return <CheckCircle2 className="h-4 w-4" />;
       case "error":
         return <AlertCircle className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusLabel = (status: EnrichJob["status"]) => {
+    switch (status) {
+      case "uploaded":
+        return "Enriching";
+      case "processing":
+        return "Processing";
+      case "completed":
+        return "Completed";
+      case "error":
+        return "Error";
     }
   };
 
@@ -363,11 +411,31 @@ const Dashboard = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-8">
+        {/* First Time Here Banner */}
+        <div className="mb-8 rounded-xl border border-eficia-violet/20 bg-gradient-to-r from-eficia-violet/5 to-eficia-purple/5 p-8 text-center">
+          <h2 className="mb-4 font-display text-2xl font-bold">
+            First time here?
+          </h2>
+          <p className="mb-6 text-lg text-muted-foreground">
+            Spend 10 minutes with the founder, who will explain how to use our
+            tool and give you your first list for free.
+          </p>
+          <a
+            href="https://calendly.com/samuel-get-eficia/30min"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button className="gradient-bg text-white hover:opacity-90">
+              Schedule Your Free Session
+            </Button>
+          </a>
+        </div>
+
         {/* Welcome & Credits */}
         <div className="mb-8 grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-border bg-card p-6">
             <h1 className="font-display text-2xl font-bold">
-              Hi, {user.email?.split("@")[0]}!
+              Hi, {user.email} !
             </h1>
             <p className="mt-1 text-muted-foreground">
               Welcome to your enrichment dashboard
@@ -393,7 +461,7 @@ const Dashboard = () => {
                   <History className="mr-2 h-4 w-4" />
                   History
                 </Button>
-                <Link to="/pricing">
+                <Link to="/#pricing">
                   <Button
                     size="sm"
                     className="gradient-bg text-accent-foreground hover:opacity-90"
@@ -417,12 +485,12 @@ const Dashboard = () => {
             <div className="rounded-lg border border-border bg-secondary/30 p-6 text-center">
               <AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" />
               <p className="font-medium">
-                You don’t have any credits available.
+                You don't have any credits available.
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Purchase a credit pack to upload a file for enrichment.
               </p>
-              <Link to="/pricing">
+              <Link to="/#pricing">
                 <Button className="mt-4 gradient-bg text-accent-foreground hover:opacity-90">
                   <CreditCard className="mr-2 h-4 w-4" />
                   Buy Credits
@@ -450,7 +518,7 @@ const Dashboard = () => {
                     Cancel
                   </Button>
                   <Button
-                    onClick={handleUpload}
+                    onClick={handleStartEnrichment}
                     disabled={uploading}
                     className="gradient-bg text-accent-foreground hover:opacity-90"
                   >
@@ -462,7 +530,7 @@ const Dashboard = () => {
                     ) : (
                       <>
                         <Upload className="mr-2 h-4 w-4" />
-                        Upload
+                        Start enrichment
                       </>
                     )}
                   </Button>
@@ -508,8 +576,9 @@ const Dashboard = () => {
           <div className="mt-3 flex items-start gap-2 rounded-lg bg-muted/50 p-3">
             <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <p className="text-sm text-muted-foreground">
-              <strong>Important:</strong> Your file name must not contain special characters or accents.
-              Use only letters (a-z, A-Z), numbers (0-9), spaces, parentheses ( ), hyphens (-), and underscores (_).
+              <strong>Note:</strong> If your file name contains special
+              characters or accents, it will be automatically normalized to
+              ensure compatibility.
             </p>
           </div>
 
@@ -553,9 +622,6 @@ const Dashboard = () => {
                       Numbers Found
                     </th>
                     <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
-                      Credits Used
-                    </th>
-                    <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
                       Action
                     </th>
                   </tr>
@@ -585,18 +651,12 @@ const Dashboard = () => {
                             )}`}
                           >
                             {getStatusIcon(job.status)}
-                            {job.status.charAt(0).toUpperCase() +
-                              job.status.slice(1)}
+                            {getStatusLabel(job.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm">
                           {job.numbers_found !== null
                             ? job.numbers_found?.toLocaleString()
-                            : "-"}
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          {job.credited_numbers !== null
-                            ? job.credited_numbers?.toLocaleString()
                             : "-"}
                         </td>
                         <td className="px-6 py-4">
@@ -618,13 +678,20 @@ const Dashboard = () => {
                         </td>
                       </tr>
                       {job.admin_note && (
-                        <tr key={`${job.id}-note`} className="border-b border-border bg-secondary/30">
+                        <tr
+                          key={`${job.id}-note`}
+                          className="border-b border-border bg-secondary/30"
+                        >
                           <td colSpan={6} className="px-6 py-3">
                             <div className="flex items-start gap-2">
                               <AlertCircle className="h-4 w-4 text-eficia-violet mt-0.5 flex-shrink-0" />
                               <div>
-                                <p className="text-xs font-medium text-eficia-violet">Admin Note</p>
-                                <p className="text-sm text-muted-foreground mt-1">{job.admin_note}</p>
+                                <p className="text-xs font-medium text-eficia-violet">
+                                  Admin Note
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {job.admin_note}
+                                </p>
                               </div>
                             </div>
                           </td>
@@ -647,7 +714,7 @@ const Dashboard = () => {
             <p className="mt-1 text-sm text-accent-foreground/80">
               Top up now to continue enriching your data
             </p>
-            <Link to="/pricing">
+            <Link to="/#pricing">
               <Button variant="secondary" className="mt-4">
                 View Credit Packs
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -694,6 +761,49 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogDescription>
+              Do you want to start the enrichment process for this file?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+            >
+              No
+            </Button>
+            <Button
+              onClick={handleConfirmUpload}
+              className="gradient-bg text-accent-foreground hover:opacity-90"
+            >
+              Yes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Processing Dialog */}
+      <Dialog
+        open={showProcessingDialog}
+        onOpenChange={setShowProcessingDialog}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              We are currently identifying your targets 🧑‍💻
+            </DialogTitle>
+            <DialogDescription>
+              Your file will be fully enriched within 24 hours.
+            </DialogDescription>
+          </DialogHeader>
         </DialogContent>
       </Dialog>
     </div>

@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Database,
   DollarSign,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -29,20 +28,59 @@ const Landing = () => {
         <div className="container relative mx-auto">
           <div className="grid items-center gap-16 lg:grid-cols-[1.2fr,0.8fr]">
             <div className="space-y-8">
-              <div className="inline-flex items-center rounded-full border border-border bg-card px-4 py-2 text-sm">
-                <Sparkles className="mr-2 h-4 w-4 text-eficia-violet" />
-                <span>Waterfall Enrichment Platform</span>
+              {/* Trusted by logos */}
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Trusted by
+                </p>
+                <div className="flex flex-wrap items-center gap-8">
+                  <img
+                    src="/logos/scalezia.png"
+                    alt="Scalezia"
+                    className="h-10"
+                  />
+                  <img
+                    src="/logos/entrepreneurs.png"
+                    alt="Entrepreneurs.com"
+                    className="h-10"
+                  />
+                  <img
+                    src="/logos/edenred.png"
+                    alt="Edenred"
+                    className="h-10"
+                  />
+                  <img
+                    src="/logos/havas.png"
+                    alt="Havas Voyages"
+                    className="h-10"
+                  />
+                  <img
+                    src="/logos/cbre.png"
+                    alt="CBRE"
+                    className="h-10"
+                  />
+                  <img
+                    src="/logos/bigsquad.jpeg"
+                    alt="Big Squad"
+                    className="h-10"
+                  />
+                  <img
+                    src="/logos/getalead.png"
+                    alt="Get A Lead"
+                    className="h-10"
+                  />
+                </div>
               </div>
 
               <h1 className="font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
                 <span className="block gradient-text-subtle">
                   Find More Phone Numbers
                 </span>
-                <span className="block text-foreground">
-                  than with any other provider
-                </span>
+                <span className="block text-foreground">cheaper</span>
                 <span className="relative block">
-                  <span style={{ color: "#171717CC" }}>No Subscription</span>
+                  <span style={{ color: "#171717CC" }}>
+                    Without Subscription
+                  </span>
                   <span className="shimmer-effect-slow"></span>
                 </span>
               </h1>
@@ -60,15 +98,6 @@ const Landing = () => {
                   >
                     Start Enriching
                     <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link to="/pricing">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                  >
-                    See Pricing
                   </Button>
                 </Link>
               </div>
@@ -98,7 +127,7 @@ const Landing = () => {
       </section>
 
       {/* Pricing Section */}
-      <section className="bg-card px-4 py-20 md:py-32">
+      <section id="pricing" className="bg-card px-4 py-20 md:py-32">
         <div className="container mx-auto">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
@@ -111,6 +140,50 @@ const Landing = () => {
 
           <div className="mx-auto max-w-3xl">
             <PricingSlider compact />
+          </div>
+
+          {/* FAQ Section */}
+          <div className="mx-auto mt-20 max-w-3xl">
+            <h2 className="mb-8 text-center font-display text-2xl font-bold">
+              Frequently Asked Questions
+            </h2>
+
+            <div className="space-y-4">
+              {[
+                {
+                  q: "How does the credit system work ?",
+                  a: "1 credit = 1 phone number found. You only get charged for numbers we actually find in your data.",
+                },
+                {
+                  q: "What information should be included in my file ?",
+                  a: "At a minimum, we need the prospect's first and last name and company (LinkedIn profile link if possible). Including the LinkedIn link helps us find more phone numbers with better accuracy.",
+                },
+                {
+                  q: "What file formats do you support ?",
+                  a: "We support CSV, XLS, and XLSX files.",
+                },
+                {
+                  q: "How long does enrichment take ?",
+                  a: "Most files are processed within a few hours. We guarantee a maximum turnaround of 24 hours.",
+                },
+                {
+                  q: "Do credits expire ?",
+                  a: "Credits are valid for two years.",
+                },
+                {
+                  q: "Can I get a full presentation of the tool?",
+                  a: "Yes, you can book a call here (link) with our team. The meeting takes less than 10 minutes.",
+                },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border border-border bg-background p-6"
+                >
+                  <h3 className="mb-2 font-display font-semibold">{item.q}</h3>
+                  <p className="text-muted-foreground">{item.a}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -151,7 +224,7 @@ const Landing = () => {
                     easily scrape data to enrich it later. We can even make
                     these lists for you. Just make an appointment{" "}
                     <a
-                      href="https://calendly.com/samuel-get-eficia/30min?month=2025-12"
+                      href="https://calendly.com/samuel-get-eficia/30min"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="gradient-text hover:opacity-80 font-semibold"
@@ -204,7 +277,7 @@ const Landing = () => {
                 step: "2",
                 title: "We Enrich Your Data",
                 description:
-                  "Our waterfall system intelligently enriches your data using the most cost-effective sources first, maximizing ROI.",
+                  "We enrich your data using the most reliable sources on the market. With access to more data providers than other tools, we consistently find more phone numbers than FullEnrich, Lusha, Kaspr, or Zeliq.",
               },
               {
                 step: "3",

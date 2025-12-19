@@ -11,16 +11,7 @@ const corsHeaders = {
 interface SignupData {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
   phone?: string;
-  companyName: string;
-  vatNumber?: string;
-  addressLine1: string;
-  addressLine2?: string;
-  postalCode: string;
-  city: string;
-  country: string;
 }
 
 serve(async (req) => {
@@ -50,10 +41,6 @@ serve(async (req) => {
       email: signupData.email,
       password: signupData.password,
       email_confirm: true, // Email is automatically confirmed
-      user_metadata: {
-        first_name: signupData.firstName,
-        last_name: signupData.lastName,
-      },
     });
 
     // Send welcome email
@@ -85,7 +72,7 @@ serve(async (req) => {
     </div>
 
     <div class="content">
-      <p>Hello ${signupData.firstName} ${signupData.lastName},</p>
+      <p>Hello,</p>
 
       <p>Thank you for creating an account with Eficia Credits Boost! We're excited to have you on board.</p>
 
@@ -98,8 +85,7 @@ serve(async (req) => {
       <div class="info-box">
         <p style="margin: 0; font-size: 14px; color: #666;">
           <strong>Your Account Details:</strong><br>
-          Email: ${signupData.email}<br>
-          Company: ${signupData.companyName}
+          Email: ${signupData.email}
         </p>
       </div>
 
@@ -150,6 +136,8 @@ serve(async (req) => {
           },
         });
 
+        console.log(`Attempting to send welcome email to ${signupData.email}...`);
+
         await smtpClient.send({
           from: `Eficia Credits Boost <${gmailUser}>`,
           to: signupData.email,
@@ -160,7 +148,7 @@ serve(async (req) => {
 
         await smtpClient.close();
 
-        console.log(`Welcome email sent successfully to ${signupData.email}`);
+        console.log(`✅ Welcome email sent successfully to ${signupData.email}`);
       } catch (emailErr) {
         console.error("Error sending welcome email:", emailErr);
         // Don't throw - account was created successfully
@@ -169,6 +157,32 @@ serve(async (req) => {
 
     if (authError) {
       console.error("Auth user creation error:", authError);
+      console.error("Auth error details:", JSON.stringify(authError, null, 2));
+
+      // Handle duplicate email error - check multiple possible error indicators
+      const errorMsg = authError.message?.toLowerCase() || '';
+      const isDuplicateEmail =
+        errorMsg.includes('already registered') ||
+        errorMsg.includes('user already registered') ||
+        errorMsg.includes('duplicate') ||
+        errorMsg.includes('already exists') ||
+        authError.status === 422 ||
+        authError.code === '23505'; // PostgreSQL unique violation
+
+      if (isDuplicateEmail) {
+        console.log("Detected duplicate email error");
+        return new Response(
+          JSON.stringify({
+            error: "An account with this email may already exist. Please try signing in or use a different email address.",
+            error_code: "EMAIL_EXISTS"
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 409,
+          }
+        );
+      }
+
       throw authError;
     }
 
@@ -179,24 +193,14 @@ serve(async (req) => {
     const userId = authData.user.id;
     console.log("User created:", userId);
 
-    // 2. Create complete profile with ALL billing info in one go (bypasses RLS with service role)
+    // 2. Create basic profile (billing info will be added later on first purchase)
     const { error: profileError } = await supabaseAdmin
       .from("profiles")
       .insert({
         user_id: userId,
         email: signupData.email,
-        first_name: signupData.firstName,
-        last_name: signupData.lastName,
         phone: signupData.phone || null,
         is_admin: false,
-        company_name: signupData.companyName,
-        vat_number: signupData.vatNumber || null,
-        billing_address: `${signupData.addressLine1}${
-          signupData.addressLine2 ? "\n" + signupData.addressLine2 : ""
-        }`,
-        billing_city: signupData.city,
-        billing_postal_code: signupData.postalCode,
-        billing_country: signupData.country,
       });
 
     if (profileError) {

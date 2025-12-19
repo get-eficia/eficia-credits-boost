@@ -71,7 +71,7 @@ export const Header = () => {
 
         {/* Center link - Desktop only */}
         <a
-          href="https://calendly.com/samuel-get-eficia/30min?month=2025-12"
+          href="https://calendly.com/samuel-get-eficia/30min"
           target="_blank"
           rel="noopener noreferrer"
           className="hidden md:block text-base font-semibold transition-colors hover:opacity-90"
@@ -81,12 +81,6 @@ export const Header = () => {
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-6 md:flex">
-          <Link
-            to="/pricing"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Pricing
-          </Link>
           {user ? (
             <>
               {/* Dashboard visible uniquement si NON admin */}
@@ -160,15 +154,8 @@ export const Header = () => {
       {mobileMenuOpen && (
         <div className="border-t border-border bg-background p-4 md:hidden">
           <nav className="flex flex-col gap-4">
-            <Link
-              to="/pricing"
-              className="text-sm font-medium"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Pricing
-            </Link>
             <a
-              href="https://calendly.com/samuel-get-eficia/30min?month=2025-12"
+              href="https://calendly.com/samuel-get-eficia/30min"
               target="_blank"
               rel="noopener noreferrer"
               className="text-base font-semibold"

@@ -17,17 +17,7 @@ const SignUp = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    firstName: "",
-    lastName: "",
     phone: "",
-    companyName: "",
-    companyId: "",
-    addressLine1: "",
-    addressLine2: "",
-    postalCode: "",
-    city: "",
-    country: "France",
-    vatNumber: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,41 +51,60 @@ const SignUp = () => {
     setLoading(true);
 
     try {
-      // Call the complete-signup Edge Function that creates everything in one go
-      const { data, error } = await supabase.functions.invoke("complete-signup", {
-        body: {
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone || undefined,
-          companyName: formData.companyName,
-          vatNumber: formData.vatNumber || undefined,
-          addressLine1: formData.addressLine1,
-          addressLine2: formData.addressLine2 || undefined,
-          postalCode: formData.postalCode,
-          city: formData.city,
-          country: formData.country,
-        },
-      });
+      // Call the complete-signup Edge Function
+      const { data, error } = await supabase.functions.invoke(
+        "complete-signup",
+        {
+          body: {
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone || undefined,
+          },
+        }
+      );
 
-      if (error) throw error;
-      if (!data?.success) throw new Error("Signup failed");
+      console.log("Signup response:", { data, error });
+
+      if (error) {
+        console.error("Supabase function error:", error);
+        throw error;
+      }
+      if (!data?.success) {
+        console.error("Signup failed - no success flag");
+        throw new Error("Signup failed");
+      }
 
       console.log("Account created successfully:", data);
 
       toast({
         title: "Account created!",
-        description:
-          "Please check your email to confirm your account before signing in.",
+        description: "Welcome to Eficia !",
       });
 
       navigate("/signin");
     } catch (err: any) {
       console.error("Signup error:", err);
+
+      // Extract error message from the response
+      let errorMessage = "Something went wrong. Please try again.";
+
+      // Supabase Functions errors come in this format
+      if (err?.message) {
+        // Try to parse if it's a JSON string
+        try {
+          const parsed = JSON.parse(err.message);
+          if (parsed.error) {
+            errorMessage = parsed.error;
+          }
+        } catch {
+          // Not JSON, use the message directly
+          errorMessage = err.message;
+        }
+      }
+
       toast({
         title: "Sign up failed",
-        description: err.message || "Something went wrong. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -129,36 +138,14 @@ const SignUp = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Account info */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h2 className="mb-4 font-display text-lg font-semibold">
-                Account Information
+                Create your account
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="firstName">First Name *</Label>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name *</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div className="sm:col-span-2">
                   <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
@@ -168,6 +155,7 @@ const SignUp = () => {
                     onChange={handleChange}
                     required
                     className="mt-1"
+                    placeholder="you@company.com"
                   />
                 </div>
                 <div>
@@ -180,6 +168,7 @@ const SignUp = () => {
                     onChange={handleChange}
                     required
                     className="mt-1"
+                    placeholder="At least 6 characters"
                   />
                 </div>
                 <div>
@@ -194,7 +183,7 @@ const SignUp = () => {
                     className="mt-1"
                   />
                 </div>
-                <div className="sm:col-span-2">
+                <div>
                   <Label htmlFor="phone">Phone (optional)</Label>
                   <Input
                     id="phone"
@@ -203,102 +192,7 @@ const SignUp = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     className="mt-1"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Billing info */}
-            <div className="rounded-xl border border-border bg-card p-6">
-              <h2 className="mb-4 font-display text-lg font-semibold">
-                Billing Information
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="companyName">Company Name *</Label>
-                  <Input
-                    id="companyName"
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="companyId">Company ID (SIREN) *</Label>
-                  <Input
-                    id="companyId"
-                    name="companyId"
-                    value={formData.companyId}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="addressLine1">Address Line 1 *</Label>
-                  <Input
-                    id="addressLine1"
-                    name="addressLine1"
-                    value={formData.addressLine1}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Label htmlFor="addressLine2">Address Line 2</Label>
-                  <Input
-                    id="addressLine2"
-                    name="addressLine2"
-                    value={formData.addressLine2}
-                    onChange={handleChange}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="postalCode">Postal Code *</Label>
-                  <Input
-                    id="postalCode"
-                    name="postalCode"
-                    value={formData.postalCode}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="city">City *</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="country">Country *</Label>
-                  <Input
-                    id="country"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="vatNumber">VAT Number</Label>
-                  <Input
-                    id="vatNumber"
-                    name="vatNumber"
-                    value={formData.vatNumber}
-                    onChange={handleChange}
-                    className="mt-1"
-                    placeholder="FR12345678901"
+                    placeholder="+33 6 12 34 56 78"
                   />
                 </div>
               </div>

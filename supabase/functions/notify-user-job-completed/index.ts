@@ -52,7 +52,7 @@ serve(async (req) => {
     }
 
     const userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email.split('@')[0]
-    const dashboardUrl = `${SUPABASE_URL?.replace('.supabase.co', '')}/app`
+    const dashboardUrl = `${Deno.env.get("PUBLIC_SITE_URL") || "https://eficia-credits-boost.vercel.app"}/app`
 
     const emailHtml = `
 <!DOCTYPE html>
@@ -63,14 +63,14 @@ serve(async (req) => {
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .header { background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
     .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
     .success-badge { background: #10b981; color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: bold; margin: 20px 0; }
-    .info-box { background: white; border-left: 4px solid #667eea; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    .info-box { background: white; border-left: 4px solid #8B5CF6; padding: 15px; margin: 15px 0; border-radius: 5px; }
     .info-row { margin: 8px 0; }
-    .label { font-weight: bold; color: #667eea; }
-    .highlight { color: #667eea; font-weight: bold; font-size: 24px; }
-    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+    .label { font-weight: bold; color: #8B5CF6; }
+    .highlight { color: #8B5CF6; font-weight: bold; font-size: 24px; }
+    .button { display: inline-block; background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
     .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
   </style>
 </head>
@@ -91,7 +91,7 @@ serve(async (req) => {
       </div>
 
       <div class="info-box">
-        <h3 style="margin-top: 0; color: #667eea;">📊 Results Summary</h3>
+        <h3 style="margin-top: 0; color: #8B5CF6;">📊 Results Summary</h3>
         <div class="info-row">
           <span class="label">File:</span> ${payload.filename}
         </div>
@@ -104,11 +104,11 @@ serve(async (req) => {
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${dashboardUrl}" class="button">📥 Download Your Enriched File</a>
+        <a href="${dashboardUrl}" class="button">🚀 Go to My Dashboard</a>
       </div>
 
       <p style="color: #666; font-size: 14px; margin-top: 20px;">
-        Your enriched file is now available in your dashboard. Click the button above to access it.
+        Your enriched file is now available in your dashboard. Click the button above to download it.
       </p>
 
       <p style="color: #666; font-size: 14px;">

@@ -79,7 +79,7 @@ serve(async (req) => {
     }
 
     const downloadUrl = signedUrlData?.signedUrl || 'URL not available'
-    const dashboardUrl = `${SUPABASE_URL?.replace('.supabase.co', '')}/admin`
+    const dashboardUrl = `${Deno.env.get("PUBLIC_SITE_URL") || "https://eficia-credits-boost.vercel.app"}/admin`
 
     // Format user info
     const userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'N/A'
@@ -99,12 +99,12 @@ serve(async (req) => {
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .header { background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
     .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-    .info-box { background: white; border-left: 4px solid #667eea; padding: 15px; margin: 15px 0; border-radius: 5px; }
+    .info-box { background: white; border-left: 4px solid #8B5CF6; padding: 15px; margin: 15px 0; border-radius: 5px; }
     .info-row { margin: 8px 0; }
-    .label { font-weight: bold; color: #667eea; }
-    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
+    .label { font-weight: bold; color: #8B5CF6; }
+    .button { display: inline-block; background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
     .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
   </style>
 </head>
@@ -121,14 +121,14 @@ serve(async (req) => {
       <p>A user has just uploaded a new file for enrichment. Here are the details:</p>
 
       <div class="info-box">
-        <h3 style="margin-top: 0; color: #667eea;">📄 File Information</h3>
+        <h3 style="margin-top: 0; color: #8B5CF6;">📄 File Information</h3>
         <div class="info-row">
           <span class="label">Filename:</span> ${payload.filename}
         </div>
       </div>
 
       <div class="info-box">
-        <h3 style="margin-top: 0; color: #667eea;">👤 User Information</h3>
+        <h3 style="margin-top: 0; color: #8B5CF6;">👤 User Information</h3>
         <div class="info-row">
           <span class="label">Name:</span> ${userName}
         </div>
