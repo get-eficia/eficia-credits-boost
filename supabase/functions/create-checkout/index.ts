@@ -1,15 +1,16 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
@@ -34,11 +35,14 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    
+    const { data: userData, error: userError } =
+      await supabaseClient.auth.getUser(token);
+    if (userError)
+      throw new Error(`Authentication error: ${userError.message}`);
+
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    if (!user?.email)
+      throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Parse request body
@@ -67,14 +71,19 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Check if customer exists
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({
+      email: user.email,
+      limit: 1,
+    });
     let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Existing Stripe customer found", { customerId });
     }
 
-    const origin = req.headers.get("origin") || "https://olzzcjkcavsqxedrjtpd.lovableproject.com";
+    const origin =
+      req.headers.get("origin") ||
+      "https://olzzcjkcavsqxedrjtpd.lovableproject.com";
 
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
@@ -96,19 +105,6 @@ serve(async (req) => {
       mode: "payment",
       success_url: `${origin}/app?payment=success`,
       cancel_url: `${origin}/pricing?payment=cancel`,
-      // Enable automatic invoice creation and email
-      invoice_creation: {
-        enabled: true,
-        invoice_data: {
-          description: `Achat de ${pack.credits} crédits - ${pack.name}`,
-          metadata: {
-            pack_id: pack.id.toString(),
-            credits: pack.credits.toString(),
-          },
-          // Use billing info from profile if available
-          custom_fields: [],
-        },
-      },
       metadata: {
         pack_id: pack.id.toString(),
         credits: pack.credits.toString(),
@@ -116,7 +112,10 @@ serve(async (req) => {
       },
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Checkout session created", {
+      sessionId: session.id,
+      url: session.url,
+    });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

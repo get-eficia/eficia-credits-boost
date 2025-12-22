@@ -1,58 +1,61 @@
 // Edge Function to notify user when their enrichment job is completed
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GMAIL_USER = Deno.env.get('GMAIL_USER')
-const GMAIL_APP_PASSWORD = Deno.env.get('GMAIL_APP_PASSWORD')
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const GMAIL_USER = Deno.env.get("GMAIL_USER");
+const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 interface NotificationPayload {
-  jobId: string
-  userId: string
-  filename: string
-  numbersFound: number
-  creditedNumbers: number
-  enrichedFileUrl?: string
+  jobId: string;
+  userId: string;
+  filename: string;
+  numbersFound: number;
+  creditedNumbers: number;
+  enrichedFileUrl?: string;
 }
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const payload: NotificationPayload = await req.json()
+    const payload: NotificationPayload = await req.json();
 
-    console.log('Received completion notification payload:', payload)
+    console.log("Received completion notification payload:", payload);
 
     // Create Supabase client with service role
-    const supabase = createClient(
-      SUPABASE_URL!,
-      SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
     // Get user information
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('email, first_name, last_name')
-      .eq('user_id', payload.userId)
-      .single()
+      .from("profiles")
+      .select("email, first_name, last_name")
+      .eq("user_id", payload.userId)
+      .single();
 
     if (profileError) {
-      console.error('Error fetching user profile:', profileError)
-      throw new Error('Failed to fetch user profile')
+      console.error("Error fetching user profile:", profileError);
+      throw new Error("Failed to fetch user profile");
     }
 
-    const userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email.split('@')[0]
-    const dashboardUrl = `${Deno.env.get("PUBLIC_SITE_URL") || "https://eficia-credits-boost.vercel.app"}/app`
+    const userName =
+      `${profile.first_name || ""} ${profile.last_name || ""}`.trim() ||
+      profile.email.split("@")[0];
+    const dashboardUrl = `${
+      Deno.env.get("PUBLIC_SITE_URL") ||
+      "https://eficia-credits-boost.vercel.app"
+    }/app`;
 
     const emailHtml = `
 <!DOCTYPE html>
@@ -78,7 +81,7 @@ serve(async (req) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1 style="margin: 0;">✅ Your Data is Ready!</h1>
+      <h1 style="margin: 0;">Your Data is Ready!</h1>
       <img src="https://eficia-credits-boost.vercel.app/eficia-logo.png" alt="Eficia" class="logo" />
     </div>
 
@@ -118,13 +121,13 @@ serve(async (req) => {
     </div>
 
     <div class="footer">
-      <p>This is an automated notification from Eficia Credits Boost</p>
+      <p>This is an automated notification from Eficia</p>
       <p>© ${new Date().getFullYear()} Eficia. All rights reserved.</p>
     </div>
   </div>
 </body>
 </html>
-    `
+    `;
 
     // Create SMTP client for Gmail
     const client = new SMTPClient({
@@ -137,48 +140,48 @@ serve(async (req) => {
           password: GMAIL_APP_PASSWORD!,
         },
       },
-    })
+    });
 
     // Truncate filename if too long to avoid MIME encoding issues
-    const truncatedFilename = payload.filename.length > 40
-      ? payload.filename.substring(0, 37) + '...'
-      : payload.filename;
+    const truncatedFilename =
+      payload.filename.length > 40
+        ? payload.filename.substring(0, 37) + "..."
+        : payload.filename;
 
     await client.send({
-      from: `Eficia Credits Boost <${GMAIL_USER}>`,
+      from: `Eficia <${GMAIL_USER}>`,
       to: profile.email,
       subject: `Your enriched file is ready: ${truncatedFilename}`,
       content: "auto",
       html: emailHtml,
-    })
+    });
 
-    await client.close()
+    await client.close();
 
-    console.log(`Completion email sent successfully to ${profile.email}`)
+    console.log(`Completion email sent successfully to ${profile.email}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'User notified successfully',
-        userEmail: profile.email
+        message: "User notified successfully",
+        userEmail: profile.email,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
       }
-    )
-
+    );
   } catch (error) {
-    console.error('Error in notify-user-job-completed function:', error)
+    console.error("Error in notify-user-job-completed function:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error.message,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
       }
-    )
+    );
   }
-})
+});

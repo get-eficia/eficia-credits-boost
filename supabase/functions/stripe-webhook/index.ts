@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@17.4.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import Stripe from "https://esm.sh/stripe@17.4.0?target=deno";
 
 const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
@@ -17,10 +17,10 @@ async function verifyWebhookSignature(
     const encoder = new TextEncoder();
 
     // Extract timestamp and signatures from header
-    const signatureData = signature.split(',').reduce((acc: any, part) => {
-      const [key, value] = part.split('=');
-      if (key === 't') acc.timestamp = value;
-      if (key === 'v1') acc.v1 = value;
+    const signatureData = signature.split(",").reduce((acc: any, part) => {
+      const [key, value] = part.split("=");
+      if (key === "t") acc.timestamp = value;
+      if (key === "v1") acc.v1 = value;
       return acc;
     }, {});
 
@@ -33,24 +33,24 @@ async function verifyWebhookSignature(
 
     // Import secret key
     const key = await crypto.subtle.importKey(
-      'raw',
+      "raw",
       encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
+      { name: "HMAC", hash: "SHA-256" },
       false,
-      ['sign']
+      ["sign"]
     );
 
     // Generate signature
     const signatureBuffer = await crypto.subtle.sign(
-      'HMAC',
+      "HMAC",
       key,
       encoder.encode(signedPayload)
     );
 
     // Convert to hex string
     const computedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
 
     // Compare signatures
     return computedSignature === signatureData.v1;
@@ -86,18 +86,26 @@ serve(async (req) => {
       }
 
       // Use manual verification instead of Stripe's library
-      const isValid = await verifyWebhookSignature(body, signature, webhookSecret);
+      const isValid = await verifyWebhookSignature(
+        body,
+        signature,
+        webhookSecret
+      );
 
       if (!isValid) {
         logStep("Webhook signature verification failed - invalid signature");
-        return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 400,
+        });
       }
 
       logStep("Signature verified successfully");
       event = JSON.parse(body);
     } else {
       // TEMPORARY: Skip signature verification if no secret (for testing only)
-      logStep("WARNING: Skipping signature verification - STRIPE_WEBHOOK_SECRET not set");
+      logStep(
+        "WARNING: Skipping signature verification - STRIPE_WEBHOOK_SECRET not set"
+      );
       event = JSON.parse(body);
     }
 
@@ -111,7 +119,9 @@ serve(async (req) => {
       const metadata = session.metadata;
       if (!metadata) {
         logStep("No metadata found in session");
-        return new Response(JSON.stringify({ received: true }), { status: 200 });
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+        });
       }
 
       const { pack_id, credits, user_id } = metadata;
@@ -119,19 +129,22 @@ serve(async (req) => {
 
       if (!credits || !user_id) {
         logStep("Missing required metadata fields");
-        return new Response(JSON.stringify({ received: true }), { status: 200 });
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+        });
       }
 
       // Initialize Supabase with service role key for write operations
       const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-      
+      const supabaseServiceKey =
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
       if (!supabaseServiceKey) {
         throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
       }
 
       const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-        auth: { persistSession: false }
+        auth: { persistSession: false },
       });
 
       // Get user's current credit balance
@@ -142,7 +155,10 @@ serve(async (req) => {
         .single();
 
       if (profileError || !profile) {
-        logStep("Profile not found for user", { user_id, error: profileError?.message });
+        logStep("Profile not found for user", {
+          user_id,
+          error: profileError?.message,
+        });
         throw new Error(`Profile not found for user ${user_id}`);
       }
 
@@ -150,7 +166,11 @@ serve(async (req) => {
       const currentBalance = profile.credit_balance || 0;
       const newBalance = currentBalance + creditAmount;
 
-      logStep("Current balance retrieved", { currentBalance, creditAmount, newBalance });
+      logStep("Current balance retrieved", {
+        currentBalance,
+        creditAmount,
+        newBalance,
+      });
 
       // Update credit balance in profile
       const { error: updateError } = await supabase
@@ -159,7 +179,9 @@ serve(async (req) => {
         .eq("user_id", user_id);
 
       if (updateError) {
-        throw new Error(`Failed to update credit balance: ${updateError.message}`);
+        throw new Error(
+          `Failed to update credit balance: ${updateError.message}`
+        );
       }
 
       logStep("Credit balance updated successfully");
@@ -171,13 +193,19 @@ serve(async (req) => {
           user_id: user_id,
           amount: creditAmount,
           type: "purchase",
-          description: pack_id ? `Credit pack purchase: ${pack_id}` : "Credit purchase",
+          description: pack_id
+            ? `Credit pack purchase: ${pack_id}`
+            : "Credit purchase",
           stripe_payment_intent_id: session.payment_intent as string,
         });
 
       if (transactionError) {
-        logStep("Transaction record creation failed", { error: transactionError.message });
-        throw new Error(`Failed to create transaction: ${transactionError.message}`);
+        logStep("Transaction record creation failed", {
+          error: transactionError.message,
+        });
+        throw new Error(
+          `Failed to create transaction: ${transactionError.message}`
+        );
       }
 
       logStep("Credit transaction recorded successfully");
@@ -189,6 +217,8 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), { status: 500 });
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+    });
   }
 });

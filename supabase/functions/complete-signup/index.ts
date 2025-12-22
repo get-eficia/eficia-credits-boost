@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -37,16 +38,20 @@ serve(async (req) => {
     console.log("Creating user account for:", signupData.email);
 
     // 1. Create auth user (email already confirmed)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: signupData.email,
-      password: signupData.password,
-      email_confirm: true, // Email is automatically confirmed
-    });
+    const { data: authData, error: authError } =
+      await supabaseAdmin.auth.admin.createUser({
+        email: signupData.email,
+        password: signupData.password,
+        email_confirm: true, // Email is automatically confirmed
+      });
 
     // Send welcome email
     if (authData.user && !authError) {
       try {
-        const loginUrl = `${Deno.env.get("PUBLIC_SITE_URL") || "https://eficia-credits-boost.vercel.app"}/signin`;
+        const loginUrl = `${
+          Deno.env.get("PUBLIC_SITE_URL") ||
+          "https://eficia-credits-boost.vercel.app"
+        }/signin`;
 
         const emailHtml = `
 <!DOCTYPE html>
@@ -68,13 +73,13 @@ serve(async (req) => {
   <div class="container">
     <div class="header">
       <h1 style="margin: 0;">🎉 Welcome to Eficia!</h1>
-      <p style="margin: 5px 0 0 0; opacity: 0.9;">Credits Boost Platform</p>
+      <p style="margin: 5px 0 0 0; opacity: 0.9;">Eficia Platform</p>
     </div>
 
     <div class="content">
       <p>Hello,</p>
 
-      <p>Thank you for creating an account with Eficia Credits Boost! We're excited to have you on board.</p>
+      <p>Thank you for creating an account with Eficia ! We're excited to have you on board.</p>
 
       <p>Your account is ready to use. You can now log in and start enriching your contact data with verified phone numbers.</p>
 
@@ -107,7 +112,7 @@ serve(async (req) => {
     </div>
 
     <div class="footer">
-      <p>This is an automated message from Eficia Credits Boost</p>
+      <p>This is an automated message from Eficia</p>
       <p>© ${new Date().getFullYear()} Eficia. All rights reserved.</p>
     </div>
   </div>
@@ -136,19 +141,23 @@ serve(async (req) => {
           },
         });
 
-        console.log(`Attempting to send welcome email to ${signupData.email}...`);
+        console.log(
+          `Attempting to send welcome email to ${signupData.email}...`
+        );
 
         await smtpClient.send({
-          from: `Eficia Credits Boost <${gmailUser}>`,
+          from: `Eficia <${gmailUser}>`,
           to: signupData.email,
-          subject: "🎉 Welcome to Eficia Credits Boost!",
+          subject: "Welcome to Eficia !",
           content: "auto",
           html: emailHtml,
         });
 
         await smtpClient.close();
 
-        console.log(`✅ Welcome email sent successfully to ${signupData.email}`);
+        console.log(
+          `✅ Welcome email sent successfully to ${signupData.email}`
+        );
       } catch (emailErr) {
         console.error("Error sending welcome email:", emailErr);
         // Don't throw - account was created successfully
@@ -160,21 +169,22 @@ serve(async (req) => {
       console.error("Auth error details:", JSON.stringify(authError, null, 2));
 
       // Handle duplicate email error - check multiple possible error indicators
-      const errorMsg = authError.message?.toLowerCase() || '';
+      const errorMsg = authError.message?.toLowerCase() || "";
       const isDuplicateEmail =
-        errorMsg.includes('already registered') ||
-        errorMsg.includes('user already registered') ||
-        errorMsg.includes('duplicate') ||
-        errorMsg.includes('already exists') ||
+        errorMsg.includes("already registered") ||
+        errorMsg.includes("user already registered") ||
+        errorMsg.includes("duplicate") ||
+        errorMsg.includes("already exists") ||
         authError.status === 422 ||
-        authError.code === '23505'; // PostgreSQL unique violation
+        authError.code === "23505"; // PostgreSQL unique violation
 
       if (isDuplicateEmail) {
         console.log("Detected duplicate email error");
         return new Response(
           JSON.stringify({
-            error: "An account with this email may already exist. Please try signing in or use a different email address.",
-            error_code: "EMAIL_EXISTS"
+            error:
+              "An account with this email may already exist. Please try signing in or use a different email address.",
+            error_code: "EMAIL_EXISTS",
           }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -224,12 +234,9 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Signup error:", errorMessage);
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
-      }
-    );
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400,
+    });
   }
 });

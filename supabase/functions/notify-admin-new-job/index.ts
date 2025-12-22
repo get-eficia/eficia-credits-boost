@@ -1,94 +1,96 @@
 // Edge Function to notify admins when a new enrichment job is uploaded
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GMAIL_USER = Deno.env.get('GMAIL_USER') // g.darroux@gmail.com
-const GMAIL_APP_PASSWORD = Deno.env.get('GMAIL_APP_PASSWORD') // App password from Google
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+const GMAIL_USER = Deno.env.get("GMAIL_USER"); // g.darroux@gmail.com
+const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD"); // App password from Google
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 interface EmailPayload {
-  jobId: string
-  userId: string
-  filename: string
-  filePath: string
+  jobId: string;
+  userId: string;
+  filename: string;
+  filePath: string;
 }
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     // Parse the webhook payload
-    const payload: EmailPayload = await req.json()
+    const payload: EmailPayload = await req.json();
 
-    console.log('Received payload:', payload)
+    console.log("Received payload:", payload);
 
     // Create Supabase client with service role
-    const supabase = createClient(
-      SUPABASE_URL!,
-      SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
     // Get user information
     const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('email, first_name, last_name, phone')
-      .eq('user_id', payload.userId)
-      .single()
+      .from("profiles")
+      .select("email, first_name, last_name, phone")
+      .eq("user_id", payload.userId)
+      .single();
 
     if (profileError) {
-      console.error('Error fetching user profile:', profileError)
-      throw new Error('Failed to fetch user profile')
+      console.error("Error fetching user profile:", profileError);
+      throw new Error("Failed to fetch user profile");
     }
 
     // Get billing profile for company info
     const { data: billingProfile } = await supabase
-      .from('billing_profiles')
-      .select('company_name')
-      .eq('user_id', payload.userId)
-      .maybeSingle()
+      .from("billing_profiles")
+      .select("company_name")
+      .eq("user_id", payload.userId)
+      .maybeSingle();
 
     // Get all admin emails
     const { data: admins, error: adminsError } = await supabase
-      .from('profiles')
-      .select('email, first_name')
-      .eq('is_admin', true)
+      .from("profiles")
+      .select("email, first_name")
+      .eq("is_admin", true);
 
     if (adminsError || !admins || admins.length === 0) {
-      console.error('Error fetching admins:', adminsError)
-      throw new Error('No admins found')
+      console.error("Error fetching admins:", adminsError);
+      throw new Error("No admins found");
     }
 
     // Generate signed URL for the uploaded file (valid for 7 days)
-    const { data: signedUrlData, error: signedUrlError } = await supabase
-      .storage
-      .from('enrich-uploads')
-      .createSignedUrl(payload.filePath, 604800) // 7 days in seconds
+    const { data: signedUrlData, error: signedUrlError } =
+      await supabase.storage
+        .from("enrich-uploads")
+        .createSignedUrl(payload.filePath, 604800); // 7 days in seconds
 
     if (signedUrlError) {
-      console.error('Error creating signed URL:', signedUrlError)
+      console.error("Error creating signed URL:", signedUrlError);
     }
 
-    const downloadUrl = signedUrlData?.signedUrl || 'URL not available'
-    const dashboardUrl = `${Deno.env.get("PUBLIC_SITE_URL") || "https://eficia-credits-boost.vercel.app"}/admin`
+    const downloadUrl = signedUrlData?.signedUrl || "URL not available";
+    const dashboardUrl = `${
+      Deno.env.get("PUBLIC_SITE_URL") ||
+      "https://eficia-credits-boost.vercel.app"
+    }/admin`;
 
     // Format user info
-    const userName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'N/A'
-    const companyName = billingProfile?.company_name || 'N/A'
-    const userPhone = profile.phone || 'N/A'
+    const userName =
+      `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "N/A";
+    const companyName = billingProfile?.company_name || "N/A";
+    const userPhone = profile.phone || "N/A";
 
     // Send email to each admin
     const emailPromises = admins.map(async (admin) => {
-      const adminFirstName = admin.first_name || 'Admin'
+      const adminFirstName = admin.first_name || "Admin";
 
       const emailHtml = `
 <!DOCTYPE html>
@@ -112,7 +114,7 @@ serve(async (req) => {
   <div class="container">
     <div class="header">
       <h1 style="margin: 0;">📁 New File Upload</h1>
-      <p style="margin: 5px 0 0 0; opacity: 0.9;">Eficia Credits Boost</p>
+      <p style="margin: 5px 0 0 0; opacity: 0.9;">Eficia</p>
     </div>
 
     <div class="content">
@@ -158,13 +160,13 @@ serve(async (req) => {
     </div>
 
     <div class="footer">
-      <p>This is an automated notification from Eficia Credits Boost</p>
+      <p>This is an automated notification from Eficia</p>
       <p>Download link expires in 7 days</p>
     </div>
   </div>
 </body>
 </html>
-      `
+      `;
 
       // Create SMTP client for Gmail
       const client = new SMTPClient({
@@ -177,52 +179,52 @@ serve(async (req) => {
             password: GMAIL_APP_PASSWORD!,
           },
         },
-      })
+      });
 
       // Truncate filename if too long to avoid MIME encoding issues
-      const truncatedFilename = payload.filename.length > 50
-        ? payload.filename.substring(0, 47) + '...'
-        : payload.filename;
+      const truncatedFilename =
+        payload.filename.length > 50
+          ? payload.filename.substring(0, 47) + "..."
+          : payload.filename;
 
       await client.send({
-        from: `Eficia Credits Boost <${GMAIL_USER}>`,
+        from: `Eficia <${GMAIL_USER}>`,
         to: admin.email,
         subject: `New File Upload: ${truncatedFilename}`,
         content: "auto",
         html: emailHtml,
-      })
+      });
 
-      await client.close()
+      await client.close();
 
-      console.log(`Email sent successfully to ${admin.email}`)
-      return { success: true, email: admin.email }
-    })
+      console.log(`Email sent successfully to ${admin.email}`);
+      return { success: true, email: admin.email };
+    });
 
-    const results = await Promise.all(emailPromises)
+    const results = await Promise.all(emailPromises);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: `Emails sent to ${admins.length} admin(s)`,
-        results
+        results,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
       }
-    )
-
+    );
   } catch (error) {
-    console.error('Error in notify-admin-new-job function:', error)
+    console.error("Error in notify-admin-new-job function:", error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error.message,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
       }
-    )
+    );
   }
-})
+});
