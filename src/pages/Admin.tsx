@@ -52,6 +52,8 @@ const Admin = () => {
   const [selectedJob, setSelectedJob] = useState<JobWithUser | null>(null);
   const [editedJob, setEditedJob] = useState<Partial<EnrichJob>>({});
   const [saving, setSaving] = useState(false);
+  const [enrichedFile, setEnrichedFile] = useState<File | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const getStatusLabel = (status: EnrichJob["status"]) => {
     switch (status) {
@@ -174,6 +176,7 @@ const Admin = () => {
       enriched_file_path: job.enriched_file_path,
       enriched_file_url: job.enriched_file_url,
     });
+    setEnrichedFile(null);
   };
 
   const handleSaveJob = async () => {
@@ -182,11 +185,30 @@ const Admin = () => {
     setSaving(true);
 
     try {
+      // Upload enriched file if one was selected
+      let enrichedFilePath = editedJob.enriched_file_path;
+      if (enrichedFile) {
+        setUploadingFile(true);
+        const filePath = `enriched/${selectedJob.user_id}/${crypto.randomUUID()}/${enrichedFile.name}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("enrich-uploads")
+          .upload(filePath, enrichedFile);
+
+        if (uploadError) {
+          console.error("File upload error:", uploadError);
+          throw new Error(`Failed to upload file: ${uploadError.message}`);
+        }
+
+        enrichedFilePath = filePath;
+        setUploadingFile(false);
+      }
+
       const updates: any = {
         status: editedJob.status,
         credited_numbers: editedJob.credited_numbers,
         admin_note: editedJob.admin_note,
-        enriched_file_path: editedJob.enriched_file_path,
+        enriched_file_path: enrichedFilePath,
         enriched_file_url: editedJob.enriched_file_url,
       };
 
@@ -301,7 +323,7 @@ const Admin = () => {
           } = await supabase.auth.getSession();
 
           if (session?.access_token) {
-            await supabase.functions.invoke("notify-user-job-completed", {
+            const { data: notifData, error: notifError } = await supabase.functions.invoke("notify-user-job-completed", {
               body: {
                 jobId: selectedJob.id,
                 userId: selectedJob.user_id,
@@ -312,10 +334,21 @@ const Admin = () => {
               },
             });
 
-            console.log("User notification sent");
+            if (notifError) {
+              console.error("Error sending user notification:", notifError);
+              toast({
+                title: "Warning",
+                description: "Job updated but user notification failed. Please check logs.",
+                variant: "destructive",
+              });
+            } else {
+              console.log("User notification sent successfully:", notifData);
+            }
+          } else {
+            console.error("No session token available for function invocation");
           }
         } catch (notifError) {
-          console.error("Error sending user notification:", notifError);
+          console.error("Exception sending user notification:", notifError);
           // Continue even if notification fails
         }
       }
@@ -636,8 +669,43 @@ const Admin = () => {
               </div>
 
               <div>
+                <Label htmlFor="enrichedFile">
+                  Upload Enriched File
+                </Label>
+                <div className="mt-2">
+                  {editedJob.enriched_file_path && !enrichedFile && (
+                    <div className="mb-2 flex items-center gap-2 rounded-md bg-green-50 p-2 text-sm text-green-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>File already uploaded</span>
+                    </div>
+                  )}
+                  <Input
+                    id="enrichedFile"
+                    type="file"
+                    accept=".csv,.xls,.xlsx"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setEnrichedFile(file);
+                      }
+                    }}
+                    className="cursor-pointer"
+                  />
+                  {enrichedFile && (
+                    <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileSpreadsheet className="h-4 w-4" />
+                      {enrichedFile.name} ({(enrichedFile.size / 1024).toFixed(1)} KB)
+                    </p>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Upload the enriched CSV or Excel file for the user to download
+                </p>
+              </div>
+
+              <div>
                 <Label htmlFor="enrichedFileUrl">
-                  Google Drive Link (Enriched File)
+                  Google Drive Link (Optional - Legacy)
                 </Label>
                 <div className="mt-1 flex items-center gap-2">
                   <LinkIcon className="h-4 w-4 text-muted-foreground" />
@@ -656,7 +724,7 @@ const Admin = () => {
                   />
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Paste the Google Drive shareable link for the enriched file
+                  Only if you still want to use Google Drive instead of file upload
                 </p>
               </div>
 
@@ -667,10 +735,15 @@ const Admin = () => {
                 </Button>
                 <Button
                   onClick={handleSaveJob}
-                  disabled={saving}
+                  disabled={saving || uploadingFile}
                   className="gradient-bg text-accent-foreground hover:opacity-90"
                 >
-                  {saving ? (
+                  {uploadingFile ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading file...
+                    </>
+                  ) : saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Saving...

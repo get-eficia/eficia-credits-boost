@@ -163,6 +163,64 @@ const AdminUsers = () => {
     }
   };
 
+  const handleRemoveCredits = async (user: AdminUser) => {
+    const rawValue = topupInputs[user.userId];
+    const amount = parseInt(rawValue, 10);
+
+    if (!amount || amount <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a positive number of credits.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingForUser(user.userId);
+
+    try {
+      const currentBalance = user.balance ?? 0;
+      const newBalance = currentBalance - amount;
+
+      // Update credit_balance in profiles table
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ credit_balance: newBalance })
+        .eq("user_id", user.userId);
+
+      if (updateError) throw updateError;
+
+      // Record transaction (negative amount)
+      const { error: txError } = await supabase
+        .from("credit_transactions")
+        .insert({
+          user_id: user.userId,
+          amount: -amount,
+          type: "admin_adjustment",
+          description: "Admin manual credit removal",
+        });
+
+      if (txError) throw txError;
+
+      toast({
+        title: "Credits removed",
+        description: `Successfully removed ${amount} credits from ${user.email}.`,
+      });
+
+      await loadUsersWithCredits();
+      setTopupInputs((prev) => ({ ...prev, [user.userId]: "" }));
+    } catch (error: any) {
+      console.error("Error removing credits:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove credits",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingForUser(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -234,7 +292,7 @@ const AdminUsers = () => {
                       Current Credits
                     </th>
                     <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
-                      Add Credits
+                      Manage Credits
                     </th>
                   </tr>
                 </thead>
@@ -266,6 +324,7 @@ const AdminUsers = () => {
                               savingForUser === u.userId ||
                               !topupInputs[u.userId]
                             }
+                            className="bg-green-600 hover:bg-green-700"
                           >
                             {savingForUser === u.userId ? (
                               <>
@@ -273,7 +332,25 @@ const AdminUsers = () => {
                                 Saving...
                               </>
                             ) : (
-                              <>Add credits</>
+                              <>Add</>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRemoveCredits(u)}
+                            disabled={
+                              savingForUser === u.userId ||
+                              !topupInputs[u.userId]
+                            }
+                          >
+                            {savingForUser === u.userId ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>Remove</>
                             )}
                           </Button>
                         </div>

@@ -29,7 +29,8 @@ import {
   Upload,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { PricingSlider } from "@/components/pricing/PricingSlider";
 
 // Normalize filename by removing accents and special characters
 const normalizeFilename = (filename: string): string => {
@@ -65,6 +66,8 @@ const Dashboard = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showProcessingDialog, setShowProcessingDialog] = useState(false);
+  const [shouldReloadOnDialogClose, setShouldReloadOnDialogClose] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -307,11 +310,9 @@ const Dashboard = () => {
         // Continue even if notification fails
       }
 
-      await loadData(user.id);
+      // Mark that we need to reload data when dialog closes
+      setShouldReloadOnDialogClose(true);
       setSelectedFile(null);
-
-      // Close processing dialog on success
-      setShowProcessingDialog(false);
     } catch (error: any) {
       console.error("Upload error:", error);
       toast({
@@ -326,42 +327,63 @@ const Dashboard = () => {
     }
   };
 
+  const handleProcessingDialogClose = async () => {
+    setShowProcessingDialog(false);
+
+    // Reload data if upload was successful
+    if (shouldReloadOnDialogClose && user) {
+      await loadData(user.id);
+      setShouldReloadOnDialogClose(false);
+    }
+  };
+
   const handleCancelFile = () => {
     setSelectedFile(null);
   };
 
   const handleDownload = async (job: EnrichJob) => {
-    // If Google Drive URL is available, open it in new tab
+    // Priority 1: Download from Supabase Storage if file path exists
+    if (job.enriched_file_path) {
+      try {
+        const { data, error } = await supabase.storage
+          .from("enrich-uploads")
+          .download(job.enriched_file_path);
+
+        if (error) throw error;
+
+        // Create download link
+        const url = URL.createObjectURL(data);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = job.enriched_file_path.split("/").pop() || "enriched.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+      } catch (error: any) {
+        console.error("Supabase download error:", error);
+        toast({
+          title: "Download failed",
+          description: error.message || "Failed to download file from storage",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Priority 2: Fallback to Google Drive URL (legacy support)
     if (job.enriched_file_url) {
       window.open(job.enriched_file_url, "_blank");
       return;
     }
 
-    // Fallback to old storage download method
-    if (!job.enriched_file_path) return;
-
-    const { data, error } = await supabase.storage
-      .from("enrich-uploads")
-      .download(job.enriched_file_path);
-
-    if (error) {
-      toast({
-        title: "Download failed",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Create download link
-    const url = URL.createObjectURL(data);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = job.enriched_file_path.split("/").pop() || "enriched.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // No file available
+    toast({
+      title: "No file available",
+      description: "The enriched file is not ready yet",
+      variant: "destructive",
+    });
   };
 
   const getStatusIcon = (status: EnrichJob["status"]) => {
@@ -461,15 +483,14 @@ const Dashboard = () => {
                   <History className="mr-2 h-4 w-4" />
                   History
                 </Button>
-                <Link to="/#pricing">
-                  <Button
-                    size="sm"
-                    className="gradient-bg text-accent-foreground hover:opacity-90"
-                  >
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Buy Credits
-                  </Button>
-                </Link>
+                <Button
+                  size="sm"
+                  className="gradient-bg text-accent-foreground hover:opacity-90"
+                  onClick={() => setShowPricingModal(true)}
+                >
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Buy Credits
+                </Button>
               </div>
             </div>
           </div>
@@ -482,20 +503,24 @@ const Dashboard = () => {
           </h2>
 
           {!hasCredits ? (
-            <div className="rounded-lg border border-border bg-secondary/30 p-6 text-center">
-              <AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" />
-              <p className="font-medium">
-                You don't have any credits available.
+            <div className="rounded-lg border-2 border-eficia-violet/30 bg-gradient-to-br from-eficia-violet/5 to-eficia-purple/5 p-8 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-eficia-violet/20 to-eficia-purple/20">
+                <CreditCard className="h-8 w-8 text-eficia-violet" />
+              </div>
+              <p className="font-display text-xl font-semibold">
+                Ready to get started?
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Purchase a credit pack to upload a file for enrichment.
+              <p className="mt-2 text-sm text-muted-foreground">
+                Purchase your credit pack to start enriching your data and unlock powerful insights.
               </p>
-              <Link to="/#pricing">
-                <Button className="mt-4 gradient-bg text-accent-foreground hover:opacity-90">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Buy Credits
-                </Button>
-              </Link>
+              <Button
+                className="mt-6 gradient-bg text-accent-foreground hover:opacity-90"
+                size="lg"
+                onClick={() => setShowPricingModal(true)}
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                Get Your Credits
+              </Button>
             </div>
           ) : selectedFile ? (
             <div className="rounded-lg border-2 border-eficia-violet/50 bg-secondary/30 p-6">
@@ -714,12 +739,14 @@ const Dashboard = () => {
             <p className="mt-1 text-sm text-accent-foreground/80">
               Top up now to continue enriching your data
             </p>
-            <Link to="/#pricing">
-              <Button variant="secondary" className="mt-4">
-                View Credit Packs
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            <Button
+              variant="secondary"
+              className="mt-4"
+              onClick={() => setShowPricingModal(true)}
+            >
+              View Credit Packs
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </div>
         )}
       </main>
@@ -793,7 +820,7 @@ const Dashboard = () => {
       {/* Processing Dialog */}
       <Dialog
         open={showProcessingDialog}
-        onOpenChange={setShowProcessingDialog}
+        onOpenChange={handleProcessingDialogClose}
       >
         <DialogContent>
           <DialogHeader>
@@ -804,6 +831,23 @@ const Dashboard = () => {
               Your file will be fully enriched within 24 hours.
             </DialogDescription>
           </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pricing Modal */}
+      <Dialog open={showPricingModal} onOpenChange={setShowPricingModal}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              Simple, <span className="gradient-text">Transparent Pricing</span>
+            </DialogTitle>
+            <DialogDescription>
+              Pay only for what you enrich. No subscriptions, no hidden fees.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <PricingSlider showCta={true} compact={false} />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

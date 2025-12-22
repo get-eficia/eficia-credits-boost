@@ -179,10 +179,15 @@ serve(async (req) => {
         },
       })
 
+      // Truncate filename if too long to avoid MIME encoding issues
+      const truncatedFilename = payload.filename.length > 50
+        ? payload.filename.substring(0, 47) + '...'
+        : payload.filename;
+
       await client.send({
         from: `Eficia Credits Boost <${GMAIL_USER}>`,
         to: admin.email,
-        subject: `🔔 New File Upload: ${payload.filename}`,
+        subject: `New File Upload: ${truncatedFilename}`,
         content: "auto",
         html: emailHtml,
       })

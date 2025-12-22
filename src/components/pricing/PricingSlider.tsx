@@ -43,12 +43,21 @@ export const PricingSlider = ({
   const [creditPacks, setCreditPacks] = useState<CreditPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     loadPricingData();
+    checkAuthStatus();
   }, []);
+
+  const checkAuthStatus = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    setIsLoggedIn(!!user);
+  };
 
   const loadPricingData = async () => {
     const { data: packsData, error } = await supabase
@@ -156,8 +165,16 @@ export const PricingSlider = ({
       }
 
       if (data?.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
+        // Open Stripe Checkout in a new tab with security features
+        const stripeWindow = window.open(data.url, '_blank', 'noopener,noreferrer');
+        if (!stripeWindow) {
+          // Fallback if popup was blocked
+          toast({
+            title: "Pop-up bloqué",
+            description: "Veuillez autoriser les pop-ups pour continuer vers le paiement.",
+            variant: "destructive",
+          });
+        }
       } else {
         throw new Error("No checkout URL returned");
       }
@@ -314,7 +331,7 @@ export const PricingSlider = ({
           <Button
             onClick={handleBuyNow}
             disabled={purchasing || !getSelectedPack()}
-            className="flex-1 gradient-bg text-accent-foreground hover:opacity-90"
+            className={`gradient-bg text-accent-foreground hover:opacity-90 ${isLoggedIn ? 'w-full' : 'flex-1'}`}
             size="lg"
           >
             {purchasing ? (
@@ -329,12 +346,14 @@ export const PricingSlider = ({
               </>
             )}
           </Button>
-          <Link to="/signup" className="flex-1">
-            <Button variant="outline" className="w-full" size="lg">
-              Get Started Free
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
+          {!isLoggedIn && (
+            <Link to="/signup" className="flex-1">
+              <Button variant="outline" className="w-full" size="lg">
+                Get Started Free
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          )}
         </div>
       )}
     </div>

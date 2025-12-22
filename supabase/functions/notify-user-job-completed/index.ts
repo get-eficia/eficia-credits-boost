@@ -64,6 +64,7 @@ serve(async (req) => {
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
     .header { background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .logo { max-width: 150px; height: auto; margin-bottom: 15px; }
     .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
     .success-badge { background: #10b981; color: white; padding: 8px 16px; border-radius: 20px; display: inline-block; font-weight: bold; margin: 20px 0; }
     .info-box { background: white; border-left: 4px solid #8B5CF6; padding: 15px; margin: 15px 0; border-radius: 5px; }
@@ -78,7 +79,7 @@ serve(async (req) => {
   <div class="container">
     <div class="header">
       <h1 style="margin: 0;">✅ Your Data is Ready!</h1>
-      <p style="margin: 5px 0 0 0; opacity: 0.9;">Eficia Credits Boost</p>
+      <img src="https://eficia-credits-boost.vercel.app/eficia-logo.png" alt="Eficia" class="logo" />
     </div>
 
     <div class="content">
@@ -138,10 +139,15 @@ serve(async (req) => {
       },
     })
 
+    // Truncate filename if too long to avoid MIME encoding issues
+    const truncatedFilename = payload.filename.length > 40
+      ? payload.filename.substring(0, 37) + '...'
+      : payload.filename;
+
     await client.send({
       from: `Eficia Credits Boost <${GMAIL_USER}>`,
       to: profile.email,
-      subject: `✅ Your enriched file "${payload.filename}" is ready!`,
+      subject: `Your enriched file is ready: ${truncatedFilename}`,
       content: "auto",
       html: emailHtml,
     })
