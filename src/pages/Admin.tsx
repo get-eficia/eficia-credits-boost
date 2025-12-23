@@ -29,7 +29,6 @@ import {
   Clock,
   Eye,
   FileSpreadsheet,
-  Link as LinkIcon,
   Loader2,
   Save,
   Users,
@@ -41,6 +40,24 @@ import { useNavigate } from "react-router-dom";
 interface JobWithUser extends EnrichJob {
   userEmail?: string;
 }
+
+// Normalize filename by removing accents and special characters
+const normalizeFilename = (filename: string): string => {
+  // Split filename into name and extension
+  const lastDotIndex = filename.lastIndexOf(".");
+  const name = lastDotIndex !== -1 ? filename.slice(0, lastDotIndex) : filename;
+  const extension = lastDotIndex !== -1 ? filename.slice(lastDotIndex) : "";
+
+  // Remove accents and normalize
+  const normalized = name
+    .normalize("NFD") // Decompose combined characters
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+    .replace(/[^a-zA-Z0-9\s\-_()]/g, "") // Keep only alphanumeric, spaces, hyphens, underscores, parentheses
+    .replace(/\s+/g, " ") // Replace multiple spaces with single space
+    .trim();
+
+  return normalized + extension.toLowerCase();
+};
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -174,7 +191,6 @@ const Admin = () => {
       credited_numbers: job.credited_numbers,
       admin_note: job.admin_note,
       enriched_file_path: job.enriched_file_path,
-      enriched_file_url: job.enriched_file_url,
     });
     setEnrichedFile(null);
   };
@@ -189,7 +205,10 @@ const Admin = () => {
       let enrichedFilePath = editedJob.enriched_file_path;
       if (enrichedFile) {
         setUploadingFile(true);
-        const filePath = `enriched/${selectedJob.user_id}/${crypto.randomUUID()}/${enrichedFile.name}`;
+
+        // Normalize filename to remove accents and special characters
+        const normalizedFilename = normalizeFilename(enrichedFile.name);
+        const filePath = `enriched/${selectedJob.user_id}/${crypto.randomUUID()}/${normalizedFilename}`;
 
         const { error: uploadError } = await supabase.storage
           .from("enrich-uploads")
@@ -207,9 +226,9 @@ const Admin = () => {
       const updates: any = {
         status: editedJob.status,
         credited_numbers: editedJob.credited_numbers,
+        numbers_found: editedJob.credited_numbers, // Copier credited_numbers vers numbers_found
         admin_note: editedJob.admin_note,
         enriched_file_path: enrichedFilePath,
-        enriched_file_url: editedJob.enriched_file_url,
       };
 
       // If marking as completed and wasn't completed before
@@ -330,7 +349,6 @@ const Admin = () => {
                 filename: selectedJob.original_filename,
                 numbersFound: editedJob.credited_numbers || 0,
                 creditedNumbers: editedJob.credited_numbers || 0,
-                enrichedFileUrl: editedJob.enriched_file_url || null,
               },
             });
 
@@ -700,31 +718,6 @@ const Admin = () => {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Upload the enriched CSV or Excel file for the user to download
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="enrichedFileUrl">
-                  Google Drive Link (Optional - Legacy)
-                </Label>
-                <div className="mt-1 flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="enrichedFileUrl"
-                    type="url"
-                    value={editedJob.enriched_file_url || ""}
-                    onChange={(e) =>
-                      setEditedJob((prev) => ({
-                        ...prev,
-                        enriched_file_url: e.target.value,
-                      }))
-                    }
-                    placeholder="https://drive.google.com/file/d/..."
-                    className="flex-1"
-                  />
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Only if you still want to use Google Drive instead of file upload
                 </p>
               </div>
 

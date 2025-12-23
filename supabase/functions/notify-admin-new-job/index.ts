@@ -1,10 +1,7 @@
 // Edge Function to notify admins when a new enrichment job is uploaded
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GMAIL_USER = Deno.env.get("GMAIL_USER"); // g.darroux@gmail.com
-const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD"); // App password from Google
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -20,6 +17,75 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+// Brevo Email Helper (intégré)
+async function sendEmailViaBrevo(
+  to: string,
+  subject: string,
+  htmlContent: string,
+  fromEmail = "noreply@get-eficia.fr",
+  fromName = "Eficia"
+): Promise<{ success: boolean; error?: string }> {
+  const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+
+  if (!brevoApiKey) {
+    console.error("BREVO_API_KEY is not configured");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "api-key": brevoApiKey,
+      },
+      body: JSON.stringify({
+        sender: {
+          name: fromName,
+          email: fromEmail,
+        },
+        to: [
+          {
+            email: to,
+            name: to.split("@")[0],
+          },
+        ],
+        subject: subject,
+        htmlContent: htmlContent,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Brevo API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+      });
+      return {
+        success: false,
+        error: `Brevo API returned ${response.status}: ${errorText}`,
+      };
+    }
+
+    const data = await response.json();
+    console.log("✅ Email sent successfully via Brevo:", {
+      to,
+      subject,
+      messageId: data.messageId,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending email via Brevo:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -168,34 +234,24 @@ serve(async (req) => {
 </html>
       `;
 
-      // Create SMTP client for Gmail
-      const client = new SMTPClient({
-        connection: {
-          hostname: "smtp.gmail.com",
-          port: 465,
-          tls: true,
-          auth: {
-            username: GMAIL_USER!,
-            password: GMAIL_APP_PASSWORD!,
-          },
-        },
-      });
-
-      // Truncate filename if too long to avoid MIME encoding issues
+      // Truncate filename if too long for subject
       const truncatedFilename =
         payload.filename.length > 50
           ? payload.filename.substring(0, 47) + "..."
           : payload.filename;
 
-      await client.send({
-        from: `Eficia <${GMAIL_USER}>`,
-        to: admin.email,
-        subject: `New File Upload: ${truncatedFilename}`,
-        content: "auto",
-        html: emailHtml,
-      });
+      const emailResult = await sendEmailViaBrevo(
+        admin.email,
+        `New File Upload: ${truncatedFilename}`,
+        emailHtml,
+        "noreply@get-eficia.fr",
+        "Eficia"
+      );
 
-      await client.close();
+      if (!emailResult.success) {
+        console.error(`Failed to send email to ${admin.email}:`, emailResult.error);
+        return { success: false, email: admin.email, error: emailResult.error };
+      }
 
       console.log(`Email sent successfully to ${admin.email}`);
       return { success: true, email: admin.email };

@@ -193,9 +193,7 @@ serve(async (req) => {
           user_id: user_id,
           amount: creditAmount,
           type: "purchase",
-          description: pack_id
-            ? `Credit pack purchase: ${pack_id}`
-            : "Credit purchase",
+          description: "Credit pack purchase",
           stripe_payment_intent_id: session.payment_intent as string,
         });
 
