@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -13,6 +12,75 @@ interface SignupData {
   email: string;
   password: string;
   phone?: string;
+}
+
+// Brevo Email Helper (intégré)
+async function sendEmailViaBrevo(
+  to: string,
+  subject: string,
+  htmlContent: string,
+  fromEmail = "noreply@get-eficia.fr",
+  fromName = "Eficia"
+): Promise<{ success: boolean; error?: string }> {
+  const brevoApiKey = Deno.env.get("BREVO_API_KEY");
+
+  if (!brevoApiKey) {
+    console.error("BREVO_API_KEY is not configured");
+    return { success: false, error: "Email service not configured" };
+  }
+
+  try {
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "api-key": brevoApiKey,
+      },
+      body: JSON.stringify({
+        sender: {
+          name: fromName,
+          email: fromEmail,
+        },
+        to: [
+          {
+            email: to,
+            name: to.split("@")[0],
+          },
+        ],
+        subject: subject,
+        htmlContent: htmlContent,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Brevo API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+      });
+      return {
+        success: false,
+        error: `Brevo API returned ${response.status}: ${errorText}`,
+      };
+    }
+
+    const data = await response.json();
+    console.log("✅ Email sent successfully via Brevo:", {
+      to,
+      subject,
+      messageId: data.messageId,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending email via Brevo:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 serve(async (req) => {
@@ -120,44 +188,27 @@ serve(async (req) => {
 </html>
         `;
 
-        const gmailUser = Deno.env.get("GMAIL_USER");
-        const gmailPassword = Deno.env.get("GMAIL_APP_PASSWORD");
-
-        if (!gmailUser || !gmailPassword) {
-          console.error("Gmail credentials not configured");
-          throw new Error("Email service not configured");
-        }
-
-        // Create SMTP client
-        const smtpClient = new SMTPClient({
-          connection: {
-            hostname: "smtp.gmail.com",
-            port: 465,
-            tls: true,
-            auth: {
-              username: gmailUser,
-              password: gmailPassword,
-            },
-          },
-        });
-
         console.log(
           `Attempting to send welcome email to ${signupData.email}...`
         );
 
-        await smtpClient.send({
-          from: `Eficia <${gmailUser}>`,
-          to: signupData.email,
-          subject: "Welcome to Eficia !",
-          content: "auto",
-          html: emailHtml,
-        });
-
-        await smtpClient.close();
-
-        console.log(
-          `✅ Welcome email sent successfully to ${signupData.email}`
+        // Send email via Brevo
+        const emailResult = await sendEmailViaBrevo(
+          signupData.email,
+          "Welcome to Eficia !",
+          emailHtml,
+          "noreply@get-eficia.fr",
+          "Eficia"
         );
+
+        if (!emailResult.success) {
+          console.error("Failed to send welcome email:", emailResult.error);
+          // Don't throw - account was created successfully
+        } else {
+          console.log(
+            `✅ Welcome email sent successfully to ${signupData.email}`
+          );
+        }
       } catch (emailErr) {
         console.error("Error sending welcome email:", emailErr);
         // Don't throw - account was created successfully
