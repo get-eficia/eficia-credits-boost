@@ -5,6 +5,7 @@ import { formatPrice, supabase } from "@/lib/supabase";
 import { ArrowRight, Loader2, ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 interface PricingTier {
   credits: number;
@@ -36,6 +37,7 @@ export const PricingSlider = ({
   showCta = true,
   compact = false,
 }: PricingSliderProps) => {
+  const { t } = useTranslation();
   const [sliderIndex, setSliderIndex] = useState(1);
   const [amount, setAmount] = useState(200);
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
@@ -128,8 +130,8 @@ export const PricingSlider = ({
 
       if (!session) {
         toast({
-          title: "Connexion requise",
-          description: "Veuillez vous connecter pour acheter des crédits.",
+          title: t("pricing.loginRequired"),
+          description: t("pricing.loginRequiredDescription"),
           variant: "destructive",
         });
         navigate("/signin");
@@ -139,8 +141,8 @@ export const PricingSlider = ({
       const selectedPack = getSelectedPack();
       if (!selectedPack) {
         toast({
-          title: "Erreur",
-          description: "Veuillez sélectionner un pack de crédits valide.",
+          title: t("pricing.error"),
+          description: t("pricing.selectValidPack"),
           variant: "destructive",
         });
         return;
@@ -170,8 +172,8 @@ export const PricingSlider = ({
         if (!stripeWindow) {
           // Fallback if popup was blocked
           toast({
-            title: "Pop-up bloqué",
-            description: "Veuillez autoriser les pop-ups pour continuer vers le paiement.",
+            title: t("pricing.popupBlocked"),
+            description: t("pricing.popupBlockedDescription"),
             variant: "destructive",
           });
         }
@@ -181,9 +183,9 @@ export const PricingSlider = ({
     } catch (error) {
       console.error("Checkout error:", error);
       toast({
-        title: "Erreur",
+        title: t("pricing.error"),
         description:
-          error instanceof Error ? error.message : "Une erreur est survenue",
+          error instanceof Error ? error.message : t("pricing.checkoutError"),
         variant: "destructive",
       });
     } finally {
@@ -248,7 +250,7 @@ export const PricingSlider = ({
           <span className="font-display text-4xl font-bold">
             {amount.toLocaleString()}
           </span>
-          <span className="ml-2 text-muted-foreground">numbers</span>
+          <span className="ml-2 text-muted-foreground">{t("pricing.numbers")}</span>
         </div>
         <div className="text-right">
           {isEnterprisePack ? (
@@ -263,7 +265,7 @@ export const PricingSlider = ({
                   size="sm"
                   className="gradient-text border-eficia-violet hover:bg-eficia-violet/10"
                 >
-                  Talk to Sales
+                  {t("pricing.talkToSales")}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </a>
@@ -274,7 +276,7 @@ export const PricingSlider = ({
                 {formatPrice(price)}
               </span>
               <p className="text-sm text-muted-foreground">
-                {formatPrice(pricePerCredit, { keepDecimals: true })} per number
+                {formatPrice(pricePerCredit, { keepDecimals: true })} {t("pricing.perNumber")}
               </p>
             </>
           )}
@@ -313,7 +315,7 @@ export const PricingSlider = ({
       {/* Volume Discount Note */}
       <div className="mb-6 rounded-lg bg-eficia-violet/10 p-4 text-center text-sm">
         <span className="text-muted-foreground">
-          If you want to lower prices because you anticipate a need for volume:{" "}
+          {t("pricing.volumeDiscountText")}{" "}
         </span>
         <a
           href="https://calendly.com/samuel-get-eficia/30min"
@@ -321,7 +323,7 @@ export const PricingSlider = ({
           rel="noopener noreferrer"
           className="font-semibold gradient-text hover:opacity-80"
         >
-          book an appointment here.
+          {t("pricing.volumeDiscountLink")}
         </a>
       </div>
 
@@ -337,19 +339,19 @@ export const PricingSlider = ({
             {purchasing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                {t("pricing.processing")}
               </>
             ) : (
               <>
                 <ShoppingCart className="mr-2 h-4 w-4" />
-                Buy Now
+                {t("pricing.buyNow")}
               </>
             )}
           </Button>
           {!isLoggedIn && (
             <Link to="/signup" className="flex-1">
               <Button variant="outline" className="w-full" size="lg">
-                Get Started Free
+                {t("pricing.getStartedFree")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

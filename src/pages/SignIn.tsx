@@ -15,8 +15,10 @@ import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const SignIn = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -53,16 +55,16 @@ const SignIn = () => {
       const isAdmin = !!profile?.is_admin;
 
       toast({
-        title: "Welcome back!",
-        description: `Signed in as ${data.user.email}`,
+        title: t("signIn.welcomeMessage"),
+        description: t("signIn.signedInAs", { email: data.user.email }),
       });
 
       navigate(isAdmin ? "/admin" : "/app");
     } catch (err: any) {
       console.error("Sign in error:", err);
       toast({
-        title: "Sign in failed",
-        description: err.message || "Invalid credentials",
+        title: t("signIn.signInFailed"),
+        description: err.message || t("signIn.invalidCredentials"),
         variant: "destructive",
       });
     } finally {
@@ -82,8 +84,8 @@ const SignIn = () => {
       if (error) throw error;
 
       toast({
-        title: "Email sent!",
-        description: "Check your inbox for the password reset link.",
+        title: t("signIn.emailSent"),
+        description: t("signIn.checkInbox"),
       });
 
       setShowForgotPassword(false);
@@ -91,8 +93,8 @@ const SignIn = () => {
     } catch (err: any) {
       console.error("Reset password error:", err);
       toast({
-        title: "Reset failed",
-        description: err.message || "Failed to send reset email",
+        title: t("signIn.resetFailed"),
+        description: err.message || t("signIn.failedToSendReset"),
         variant: "destructive",
       });
     } finally {
@@ -115,11 +117,11 @@ const SignIn = () => {
               />
             </div>
 
-            <h1 className="font-display text-3xl font-bold">Welcome back</h1>
+            <h1 className="font-display text-3xl font-bold">{t("signIn.welcomeBack")}</h1>
             <p className="mt-2 text-muted-foreground">
-              Don't have an account?{" "}
+              {t("signIn.noAccount")}{" "}
               <Link to="/signup" className="text-eficia-teal hover:underline">
-                Sign up
+                {t("signIn.signUp")}
               </Link>
             </p>
           </div>
@@ -130,7 +132,7 @@ const SignIn = () => {
           >
             <div className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("signIn.email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -138,11 +140,11 @@ const SignIn = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="mt-1"
-                  placeholder="you@company.com"
+                  placeholder={t("signUp.emailPlaceholder")}
                 />
               </div>
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("signIn.password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -162,10 +164,10 @@ const SignIn = () => {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  {t("signIn.signingIn")}
                 </>
               ) : (
-                "Sign In"
+                t("signIn.signIn")
               )}
             </Button>
 
@@ -175,7 +177,7 @@ const SignIn = () => {
                 onClick={() => setShowForgotPassword(true)}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Forgot your password?
+                {t("signIn.forgotPassword")}
               </button>
             </div>
           </form>
@@ -187,22 +189,21 @@ const SignIn = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display">
-              Reset your password
+              {t("signIn.resetPasswordTitle")}
             </DialogTitle>
             <DialogDescription>
-              Enter your email address and we'll send you a link to reset your
-              password.
+              {t("signIn.resetPasswordDescription")}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>
-              <Label htmlFor="reset-email">Email</Label>
+              <Label htmlFor="reset-email">{t("signIn.email")}</Label>
               <Input
                 id="reset-email"
                 type="email"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
-                placeholder="you@company.com"
+                placeholder={t("signUp.emailPlaceholder")}
                 required
                 className="mt-1"
               />
@@ -214,7 +215,7 @@ const SignIn = () => {
                 onClick={() => setShowForgotPassword(false)}
                 disabled={resetting}
               >
-                Cancel
+                {t("signIn.cancel")}
               </Button>
               <Button
                 type="submit"
@@ -224,10 +225,10 @@ const SignIn = () => {
                 {resetting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
+                    {t("signIn.sending")}
                   </>
                 ) : (
-                  "Send reset link"
+                  t("signIn.sendResetLink")
                 )}
               </Button>
             </div>

@@ -1,16 +1,19 @@
 import eficiaLogo from "@/assets/eficia-logo.png";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { LogOut, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 interface UserWithRole extends User {
   isAdmin?: boolean;
 }
 
 export const Header = () => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<UserWithRole | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -75,12 +78,19 @@ export const Header = () => {
           target="_blank"
           rel="noopener noreferrer"
           className="hidden md:block text-base font-semibold transition-colors hover:opacity-90"
-        >
-          Ask your <span className="gradient-text">free-trial</span>
-        </a>
+          dangerouslySetInnerHTML={{
+            __html: t("header.askFreeTrial", {
+              interpolation: { escapeValue: false },
+            }).replace(
+              "free-trial",
+              '<span class="gradient-text">free-trial</span>'
+            ),
+          }}
+        />
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-6 md:flex">
+          <LanguageSwitcher />
           {user ? (
             <>
               {/* Dashboard visible uniquement si NON admin */}
@@ -89,7 +99,7 @@ export const Header = () => {
                   to="/app"
                   className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  Dashboard
+                  {t("header.dashboard")}
                 </Link>
               )}
               {user.isAdmin && (
@@ -98,13 +108,13 @@ export const Header = () => {
                     to="/admin"
                     className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    Admin
+                    {t("header.admin")}
                   </Link>
                   <Link
                     to="/admin/users"
                     className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    All Users
+                    {t("header.allUsers")}
                   </Link>
                 </>
               )}
@@ -114,7 +124,7 @@ export const Header = () => {
                 </span>
                 <Button variant="ghost" size="sm" onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  Logout
+                  {t("header.logout")}
                 </Button>
               </div>
             </>
@@ -122,7 +132,7 @@ export const Header = () => {
             <>
               <Link to="/signin">
                 <Button variant="ghost" size="sm">
-                  Sign In
+                  {t("header.signIn")}
                 </Button>
               </Link>
               <Link to="/signup">
@@ -130,7 +140,7 @@ export const Header = () => {
                   size="sm"
                   className="gradient-bg text-accent-foreground hover:opacity-90"
                 >
-                  Get Started
+                  {t("header.getStarted")}
                 </Button>
               </Link>
             </>
@@ -154,15 +164,24 @@ export const Header = () => {
       {mobileMenuOpen && (
         <div className="border-t border-border bg-background p-4 md:hidden">
           <nav className="flex flex-col gap-4">
+            <div className="flex justify-center pb-2">
+              <LanguageSwitcher />
+            </div>
             <a
               href="https://calendly.com/samuel-get-eficia/30min"
               target="_blank"
               rel="noopener noreferrer"
               className="text-base font-semibold"
               onClick={() => setMobileMenuOpen(false)}
-            >
-              Ask your <span className="gradient-text">free-trial</span>
-            </a>
+              dangerouslySetInnerHTML={{
+                __html: t("header.askFreeTrial", {
+                  interpolation: { escapeValue: false },
+                }).replace(
+                  "free-trial",
+                  '<span class="gradient-text">free-trial</span>'
+                ),
+              }}
+            />
             {user ? (
               <>
                 {/* Dashboard visible uniquement si NON admin */}
@@ -172,7 +191,7 @@ export const Header = () => {
                     className="text-sm font-medium"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Dashboard
+                    {t("header.dashboard")}
                   </Link>
                 )}
 
@@ -183,14 +202,14 @@ export const Header = () => {
                       className="text-sm font-medium"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Admin
+                      {t("header.admin")}
                     </Link>
                     <Link
                       to="/admin/users"
                       className="text-sm font-medium"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      All Users
+                      {t("header.allUsers")}
                     </Link>
                   </>
                 )}
@@ -201,14 +220,14 @@ export const Header = () => {
                   className="justify-start"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Logout
+                  {t("header.logout")}
                 </Button>
               </>
             ) : (
               <>
                 <Link to="/signin" onClick={() => setMobileMenuOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full">
-                    Sign In
+                    {t("header.signIn")}
                   </Button>
                 </Link>
                 <Link to="/signup" onClick={() => setMobileMenuOpen(false)}>
@@ -216,7 +235,7 @@ export const Header = () => {
                     size="sm"
                     className="w-full gradient-bg text-accent-foreground"
                   >
-                    Get Started
+                    {t("header.getStarted")}
                   </Button>
                 </Link>
               </>

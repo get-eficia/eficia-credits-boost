@@ -10,9 +10,11 @@ import {
   DollarSign,
   Zap,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 const Landing = () => {
+  const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -31,7 +33,7 @@ const Landing = () => {
               {/* Trusted by logos */}
               <div className="space-y-4">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Trusted by
+                  {t("landing.trustedBy")}
                 </p>
                 <div className="flex flex-wrap items-center gap-8">
                   <img
@@ -54,11 +56,7 @@ const Landing = () => {
                     alt="Havas Voyages"
                     className="h-10"
                   />
-                  <img
-                    src="/logos/cbre.png"
-                    alt="CBRE"
-                    className="h-10"
-                  />
+                  <img src="/logos/cbre.png" alt="CBRE" className="h-10" />
                   <img
                     src="/logos/bigsquad.jpeg"
                     alt="Big Squad"
@@ -74,20 +72,21 @@ const Landing = () => {
 
               <h1 className="font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
                 <span className="block gradient-text-subtle">
-                  Find More Phone Numbers
+                  {t("landing.heroTitle1")}
                 </span>
-                <span className="block text-foreground">cheaper</span>
+                <span className="block text-foreground">
+                  {t("landing.heroTitle2")}
+                </span>
                 <span className="relative block">
                   <span style={{ color: "#171717CC" }}>
-                    Without Subscription
+                    {t("landing.heroTitle3")}
                   </span>
                   <span className="shimmer-effect-slow"></span>
                 </span>
               </h1>
 
               <p className="text-lg text-muted-foreground md:text-xl">
-                We tested all the providers out there. We built the one we'd
-                actually pay for — cheaper, better, no commitment.
+                {t("landing.heroDescription")}
               </p>
 
               <div className="flex flex-col gap-4 sm:flex-row">
@@ -96,7 +95,7 @@ const Landing = () => {
                     size="lg"
                     className="gradient-bg w-full text-white hover:opacity-90 sm:w-auto"
                   >
-                    Start Enriching
+                    {t("landing.startEnriching")}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -105,15 +104,15 @@ const Landing = () => {
               <div className="flex flex-wrap gap-6 pt-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-5 w-5 text-eficia-violet" />
-                  No subscription
+                  {t("landing.noSubscription")}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-5 w-5 text-eficia-violet" />
-                  Pay per credit
+                  {t("landing.payPerCredit")}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CheckCircle2 className="h-5 w-5 text-eficia-violet" />
-                  24h max delivery
+                  {t("landing.maxDelivery")}
                 </div>
               </div>
             </div>
@@ -131,10 +130,24 @@ const Landing = () => {
         <div className="container mx-auto">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
-              Simple, <span className="gradient-text">Transparent Pricing</span>
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: t("landing.pricingTitle", {
+                    interpolation: { escapeValue: false },
+                  })
+                    .replace(
+                      "Transparent Pricing",
+                      '<span class="gradient-text">Transparent Pricing</span>'
+                    )
+                    .replace(
+                      "Tarifs simples et transparents",
+                      '<span class="gradient-text">Tarifs simples et transparents</span>'
+                    ),
+                }}
+              />
             </h2>
             <p className="text-lg text-muted-foreground">
-              Pay only for what you enrich. No subscriptions, no hidden fees.
+              {t("landing.pricingDescription")}
             </p>
           </div>
 
@@ -145,36 +158,16 @@ const Landing = () => {
           {/* FAQ Section */}
           <div className="mx-auto mt-20 max-w-3xl">
             <h2 className="mb-8 text-center font-display text-2xl font-bold">
-              Frequently Asked Questions
+              {t("landing.faqTitle")}
             </h2>
 
             <div className="space-y-4">
-              {[
-                {
-                  q: "How does the credit system work ?",
-                  a: "1 credit = 1 phone number found. You only get charged for numbers we actually find in your data.",
-                },
-                {
-                  q: "What information should be included in my file ?",
-                  a: "At a minimum, we need the prospect's first and last name and company (LinkedIn profile link if possible). Including the LinkedIn link helps us find more phone numbers with better accuracy.",
-                },
-                {
-                  q: "What file formats do you support ?",
-                  a: "We support CSV, XLS, and XLSX files.",
-                },
-                {
-                  q: "How long does enrichment take ?",
-                  a: "Most files are processed within a few hours. We guarantee a maximum turnaround of 24 hours.",
-                },
-                {
-                  q: "Do credits expire ?",
-                  a: "Credits are valid for two years.",
-                },
-                {
-                  q: "Can I get a full presentation of the tool?",
-                  a: "Yes, you can book a call here (link) with our team. The meeting takes less than 10 minutes.",
-                },
-              ].map((item, i) => (
+              {(
+                t("landing.faq", { returnObjects: true }) as Array<{
+                  q: string;
+                  a: string;
+                }>
+              ).map((item, i) => (
                 <div
                   key={i}
                   className="rounded-lg border border-border bg-background p-6"
@@ -193,11 +186,24 @@ const Landing = () => {
         <div className="container mx-auto">
           <div className="mx-auto mb-12 max-w-3xl text-center">
             <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
-              Finally, One Platform for{" "}
-              <span className="gradient-text">all Enrichment Data</span>
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: t("landing.whyChooseTitle", {
+                    interpolation: { escapeValue: false },
+                  })
+                    .replace(
+                      "all Enrichment Data",
+                      '<span class="gradient-text">all Enrichment Data</span>'
+                    )
+                    .replace(
+                      "toutes les données d'enrichissement",
+                      '<span class="gradient-text">toutes les données d\'enrichissement</span>'
+                    ),
+                }}
+              />
             </h2>
             <p className="text-lg text-muted-foreground">
-              The smartest way to enrich your data
+              {t("landing.whyChooseDescription")}
             </p>
           </div>
 
@@ -205,31 +211,27 @@ const Landing = () => {
             {[
               {
                 icon: DollarSign,
-                title: "Pay Per Use",
-                description:
-                  "Most providers want to charge you a subscription fee, even though you don't need one. With us, you pay for what you use.",
+                title: t("landing.feature1Title"),
+                description: t("landing.feature1Description"),
               },
               {
                 icon: Database,
-                title: "Waterfall Enrichment",
-                description:
-                  "All providers sell you waterfall enrichment as if it were an extraordinary feature. It's basic. We find more numbers than any of these providers, and we can prove it.",
+                title: t("landing.feature2Title"),
+                description: t("landing.feature2Description"),
               },
               {
                 icon: Zap,
-                title: "We can even help you scrape your data",
+                title: t("landing.feature3Title"),
                 description: (
                   <>
-                    If you waste time making lists, we can show you how to
-                    easily scrape data to enrich it later. We can even make
-                    these lists for you. Just make an appointment{" "}
+                    {t("landing.feature3Description")}{" "}
                     <a
                       href="https://calendly.com/samuel-get-eficia/30min"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="gradient-text hover:opacity-80 font-semibold"
                     >
-                      right here
+                      {t("landing.feature3Link")}
                     </a>
                     .
                   </>
@@ -258,10 +260,12 @@ const Landing = () => {
         <div className="container mx-auto">
           <div className="mx-auto mb-16 max-w-2xl text-center">
             <h2 className="mb-4 font-display text-4xl font-bold md:text-5xl">
-              <span className="gradient-text">How It Works</span>
+              <span className="gradient-text">
+                {t("landing.howItWorksTitle")}
+              </span>
             </h2>
             <p className="text-lg text-muted-foreground">
-              Three simple steps to enriched data
+              {t("landing.howItWorksDescription")}
             </p>
           </div>
 
@@ -269,21 +273,18 @@ const Landing = () => {
             {[
               {
                 step: "1",
-                title: "Upload Your File",
-                description:
-                  "Simply upload your CSV or Excel file with the contact information you want to enrich. Drag, drop, done.",
+                title: t("landing.step1Title"),
+                description: t("landing.step1Description"),
               },
               {
                 step: "2",
-                title: "We Enrich Your Data",
-                description:
-                  "We enrich your data using the most reliable sources on the market. With access to more data providers than other tools, we consistently find more phone numbers than FullEnrich, Lusha, Kaspr, or Zeliq.",
+                title: t("landing.step2Title"),
+                description: t("landing.step2Description"),
               },
               {
                 step: "3",
-                title: "Download Enriched Results",
-                description:
-                  "Receive an email notification when complete, then download your enriched file with all the data you need.",
+                title: t("landing.step3Title"),
+                description: t("landing.step3Description"),
               },
             ].map((item, i) => (
               <div

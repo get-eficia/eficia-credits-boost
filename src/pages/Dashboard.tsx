@@ -1,4 +1,5 @@
 import { Header } from "@/components/layout/Header";
+import { PricingSlider } from "@/components/pricing/PricingSlider";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +21,6 @@ import {
   AlertCircle,
   ArrowRight,
   CheckCircle2,
-  Clock,
   CreditCard,
   Download,
   FileSpreadsheet,
@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { PricingSlider } from "@/components/pricing/PricingSlider";
+import { useTranslation } from "react-i18next";
 
 // Normalize filename by removing accents and special characters
 const normalizeFilename = (filename: string): string => {
@@ -53,6 +53,7 @@ const normalizeFilename = (filename: string): string => {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
@@ -66,7 +67,8 @@ const Dashboard = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showProcessingDialog, setShowProcessingDialog] = useState(false);
-  const [shouldReloadOnDialogClose, setShouldReloadOnDialogClose] = useState(false);
+  const [shouldReloadOnDialogClose, setShouldReloadOnDialogClose] =
+    useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
 
   useEffect(() => {
@@ -148,8 +150,8 @@ const Dashboard = () => {
 
     if (!isValidType) {
       toast({
-        title: "Invalid file type",
-        description: "Please upload a CSV or Excel file (.csv, .xls, .xlsx)",
+        title: t("dashboard.invalidFileType"),
+        description: t("dashboard.invalidFileDescription"),
         variant: "destructive",
       });
       return false;
@@ -159,8 +161,11 @@ const Dashboard = () => {
     const normalizedName = normalizeFilename(file.name);
     if (normalizedName !== file.name) {
       toast({
-        title: "Filename will be normalized",
-        description: `Your file "${file.name}" will be saved as "${normalizedName}"`,
+        title: t("dashboard.filenameNormalized"),
+        description: t("dashboard.filenameNormalizedDescription", {
+          original: file.name,
+          normalized: normalizedName,
+        }),
       });
     }
 
@@ -170,8 +175,8 @@ const Dashboard = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!hasCredits) {
       toast({
-        title: "Not enough credits",
-        description: "You need credits to upload a file.",
+        title: t("dashboard.notEnoughCredits"),
+        description: t("dashboard.needCreditsDescription"),
         variant: "destructive",
       });
       if (fileInputRef.current) {
@@ -208,8 +213,8 @@ const Dashboard = () => {
     e.preventDefault();
     if (!hasCredits) {
       toast({
-        title: "Not enough credits",
-        description: "You need credits to upload a file.",
+        title: t("dashboard.notEnoughCredits"),
+        description: t("dashboard.needCreditsDescription"),
         variant: "destructive",
       });
       return;
@@ -230,8 +235,8 @@ const Dashboard = () => {
 
     if (!hasCredits) {
       toast({
-        title: "Not enough credits",
-        description: "You need credits to upload a file.",
+        title: t("dashboard.notEnoughCredits"),
+        description: t("dashboard.needCreditsDescription"),
         variant: "destructive",
       });
       return;
@@ -316,7 +321,7 @@ const Dashboard = () => {
     } catch (error: any) {
       console.error("Upload error:", error);
       toast({
-        title: "Upload failed",
+        title: t("dashboard.uploadFailed"),
         description: error.message || "Something went wrong",
         variant: "destructive",
       });
@@ -364,7 +369,7 @@ const Dashboard = () => {
       } catch (error: any) {
         console.error("Supabase download error:", error);
         toast({
-          title: "Download failed",
+          title: t("dashboard.downloadFailed"),
           description: error.message || "Failed to download file from storage",
           variant: "destructive",
         });
@@ -380,8 +385,8 @@ const Dashboard = () => {
 
     // No file available
     toast({
-      title: "No file available",
-      description: "The enriched file is not ready yet",
+      title: t("dashboard.noFileAvailable"),
+      description: t("dashboard.noFileDescription"),
       variant: "destructive",
     });
   };
@@ -402,13 +407,13 @@ const Dashboard = () => {
   const getStatusLabel = (status: EnrichJob["status"]) => {
     switch (status) {
       case "uploaded":
-        return "Enriching";
+        return t("dashboard.statusEnriching");
       case "processing":
-        return "Processing";
+        return t("dashboard.statusProcessing");
       case "completed":
-        return "Completed";
+        return t("dashboard.statusCompleted");
       case "error":
-        return "Error";
+        return t("dashboard.statusError");
     }
   };
 
@@ -436,11 +441,10 @@ const Dashboard = () => {
         {/* First Time Here Banner */}
         <div className="mb-8 rounded-xl border border-eficia-violet/20 bg-gradient-to-r from-eficia-violet/5 to-eficia-purple/5 p-8 text-center">
           <h2 className="mb-4 font-display text-2xl font-bold">
-            First time here?
+            {t("dashboard.firstTimeTitle")}
           </h2>
           <p className="mb-6 text-lg text-muted-foreground">
-            Spend 10 minutes with the founder, who will explain how to use our
-            tool and give you your first list for free.
+            {t("dashboard.firstTimeDescription")}
           </p>
           <a
             href="https://calendly.com/samuel-get-eficia/30min"
@@ -448,7 +452,7 @@ const Dashboard = () => {
             rel="noopener noreferrer"
           >
             <Button className="gradient-bg text-white hover:opacity-90">
-              Schedule Your Free Session
+              {t("dashboard.scheduleSession")}
             </Button>
           </a>
         </div>
@@ -457,10 +461,10 @@ const Dashboard = () => {
         <div className="mb-8 grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-border bg-card p-6">
             <h1 className="font-display text-2xl font-bold">
-              Hi, {user.email} !
+              {t("dashboard.hi", { email: user.email })}
             </h1>
             <p className="mt-1 text-muted-foreground">
-              Welcome to your enrichment dashboard
+              {t("dashboard.welcomeMessage")}
             </p>
           </div>
 
@@ -468,7 +472,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Available Credits
+                  {t("dashboard.availableCredits")}
                 </p>
                 <p className="mt-1 font-display text-4xl font-bold text-eficia-violet">
                   {creditBalance.toLocaleString()}
@@ -481,7 +485,7 @@ const Dashboard = () => {
                   onClick={() => setShowHistory(true)}
                 >
                   <History className="mr-2 h-4 w-4" />
-                  History
+                  {t("dashboard.history")}
                 </Button>
                 <Button
                   size="sm"
@@ -489,7 +493,7 @@ const Dashboard = () => {
                   onClick={() => setShowPricingModal(true)}
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Buy Credits
+                  {t("dashboard.buyCredits")}
                 </Button>
               </div>
             </div>
@@ -499,7 +503,7 @@ const Dashboard = () => {
         {/* Upload Section */}
         <div className="mb-8 rounded-xl border border-border bg-card p-6">
           <h2 className="mb-4 font-display text-xl font-semibold">
-            Upload File for Enrichment
+            {t("dashboard.uploadTitle")}
           </h2>
 
           {!hasCredits ? (
@@ -508,10 +512,10 @@ const Dashboard = () => {
                 <CreditCard className="h-8 w-8 text-eficia-violet" />
               </div>
               <p className="font-display text-xl font-semibold">
-                Ready to get started?
+                {t("dashboard.readyToStart")}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Purchase your credit pack to start enriching your data and unlock powerful insights.
+                {t("dashboard.readyDescription")}
               </p>
               <Button
                 className="mt-6 gradient-bg text-accent-foreground hover:opacity-90"
@@ -519,7 +523,7 @@ const Dashboard = () => {
                 onClick={() => setShowPricingModal(true)}
               >
                 <CreditCard className="mr-2 h-5 w-5" />
-                Get Your Credits
+                {t("dashboard.getYourCredits")}
               </Button>
             </div>
           ) : selectedFile ? (
@@ -540,7 +544,7 @@ const Dashboard = () => {
                     onClick={handleCancelFile}
                     disabled={uploading}
                   >
-                    Cancel
+                    {t("dashboard.cancel")}
                   </Button>
                   <Button
                     onClick={handleStartEnrichment}
@@ -550,12 +554,12 @@ const Dashboard = () => {
                     {uploading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
+                        {t("dashboard.uploading")}
                       </>
                     ) : (
                       <>
                         <Upload className="mr-2 h-4 w-4" />
-                        Start enrichment
+                        {t("dashboard.startEnrichment")}
                       </>
                     )}
                   </Button>
@@ -575,10 +579,10 @@ const Dashboard = () => {
             >
               <Upload className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-lg font-medium">
-                Drop your file here or click to browse
+                {t("dashboard.dropFile")}
               </p>
               <p className="mb-4 text-sm text-muted-foreground">
-                Supports CSV, XLS, and XLSX files
+                {t("dashboard.supportsFormats")}
               </p>
               <input
                 ref={fileInputRef}
@@ -593,7 +597,7 @@ const Dashboard = () => {
                 className="gradient-bg text-accent-foreground hover:opacity-90"
               >
                 <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Select File
+                {t("dashboard.selectFile")}
               </Button>
             </div>
           )}
@@ -601,15 +605,13 @@ const Dashboard = () => {
           <div className="mt-3 flex items-start gap-2 rounded-lg bg-muted/50 p-3">
             <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
             <p className="text-sm text-muted-foreground">
-              <strong>Note:</strong> If your file name contains special
-              characters or accents, it will be automatically normalized to
-              ensure compatibility.
+              <strong>{t("dashboard.noteTitle")}</strong> {t("dashboard.noteDescription")}
             </p>
           </div>
 
           <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <CheckCircle2 className="h-4 w-4 text-eficia-violet" />
-            Your file will be processed within 24 hours maximum
+            {t("dashboard.processedWithin24h")}
           </div>
         </div>
 
@@ -617,16 +619,16 @@ const Dashboard = () => {
         <div className="rounded-xl border border-border bg-card">
           <div className="border-b border-border p-6">
             <h2 className="font-display text-xl font-semibold">
-              Your Enrichment Jobs
+              {t("dashboard.yourJobs")}
             </h2>
           </div>
 
           {jobs.length === 0 ? (
             <div className="p-12 text-center">
               <FileSpreadsheet className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
-              <p className="text-muted-foreground">No enrichment jobs yet</p>
+              <p className="text-muted-foreground">{t("dashboard.noJobsYet")}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Upload a file to get started
+                {t("dashboard.uploadToStart")}
               </p>
             </div>
           ) : (
@@ -635,19 +637,19 @@ const Dashboard = () => {
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
-                      Date
+                      {t("dashboard.date")}
                     </th>
                     <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
-                      File
+                      {t("dashboard.file")}
                     </th>
                     <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
-                      Status
+                      {t("dashboard.status")}
                     </th>
                     <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
-                      Numbers Found
+                      {t("dashboard.numbersFound")}
                     </th>
                     <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
-                      Action
+                      {t("dashboard.action")}
                     </th>
                   </tr>
                 </thead>
@@ -693,11 +695,11 @@ const Dashboard = () => {
                               onClick={() => handleDownload(job)}
                             >
                               <Download className="mr-2 h-4 w-4" />
-                              Download
+                              {t("dashboard.download")}
                             </Button>
                           ) : (
                             <span className="text-sm text-muted-foreground">
-                              {job.status === "error" ? "Failed" : "Pending"}
+                              {job.status === "error" ? t("dashboard.failed") : t("dashboard.pending")}
                             </span>
                           )}
                         </td>
@@ -712,7 +714,7 @@ const Dashboard = () => {
                               <AlertCircle className="h-4 w-4 text-eficia-violet mt-0.5 flex-shrink-0" />
                               <div>
                                 <p className="text-xs font-medium text-eficia-violet">
-                                  Admin Note
+                                  {t("dashboard.adminNote")}
                                 </p>
                                 <p className="text-sm text-muted-foreground mt-1">
                                   {job.admin_note}
@@ -734,17 +736,17 @@ const Dashboard = () => {
         {creditBalance < 100 && (
           <div className="mt-8 rounded-xl gradient-bg p-6 text-center">
             <p className="font-display text-lg font-semibold text-accent-foreground">
-              Running low on credits?
+              {t("dashboard.runningLowTitle")}
             </p>
             <p className="mt-1 text-sm text-accent-foreground/80">
-              Top up now to continue enriching your data
+              {t("dashboard.runningLowDescription")}
             </p>
             <Button
               variant="secondary"
               className="mt-4"
               onClick={() => setShowPricingModal(true)}
             >
-              View Credit Packs
+              {t("dashboard.viewCreditPacks")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -755,12 +757,12 @@ const Dashboard = () => {
       <Dialog open={showHistory} onOpenChange={setShowHistory}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display">Credit History</DialogTitle>
+            <DialogTitle className="font-display">{t("dashboard.creditHistory")}</DialogTitle>
           </DialogHeader>
           <div className="max-h-96 overflow-y-auto">
             {transactions.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
-                No transactions yet
+                {t("dashboard.noTransactions")}
               </p>
             ) : (
               <div className="space-y-3">
@@ -795,9 +797,9 @@ const Dashboard = () => {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogTitle>{t("dashboard.confirmTitle")}</DialogTitle>
             <DialogDescription>
-              Do you want to start the enrichment process for this file?
+              {t("dashboard.confirmDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-3 mt-4">
@@ -805,13 +807,13 @@ const Dashboard = () => {
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
             >
-              No
+              {t("dashboard.no")}
             </Button>
             <Button
               onClick={handleConfirmUpload}
               className="gradient-bg text-accent-foreground hover:opacity-90"
             >
-              Yes
+              {t("dashboard.yes")}
             </Button>
           </div>
         </DialogContent>
@@ -825,10 +827,10 @@ const Dashboard = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              We are currently identifying your targets 🧑‍💻
+              {t("dashboard.processingTitle")}
             </DialogTitle>
             <DialogDescription>
-              Your file will be fully enriched within 24 hours.
+              {t("dashboard.processingDescription")}
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
@@ -839,10 +841,10 @@ const Dashboard = () => {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">
-              Simple, <span className="gradient-text">Transparent Pricing</span>
+              {t("landing.pricingTitle")}
             </DialogTitle>
             <DialogDescription>
-              Pay only for what you enrich. No subscriptions, no hidden fees.
+              {t("landing.pricingDescription")}
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4">

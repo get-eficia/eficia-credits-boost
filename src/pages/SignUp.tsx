@@ -8,8 +8,10 @@ import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const SignUp = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -32,8 +34,8 @@ const SignUp = () => {
 
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: t("signUp.error"),
+        description: t("signUp.passwordsDoNotMatch"),
         variant: "destructive",
       });
       return;
@@ -41,8 +43,8 @@ const SignUp = () => {
 
     if (formData.password.length < 6) {
       toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
+        title: t("signUp.error"),
+        description: t("signUp.passwordTooShort"),
         variant: "destructive",
       });
       return;
@@ -110,8 +112,8 @@ const SignUp = () => {
         // Check for specific error code (EMAIL_EXISTS for 409 responses)
         if (errorData?.error_code === "EMAIL_EXISTS") {
           toast({
-            title: "Email already registered",
-            description: "An account with this email already exists. Please sign in or use a different email address.",
+            title: t("signUp.emailAlreadyRegistered"),
+            description: t("signUp.emailExistsDescription"),
             variant: "destructive",
           });
           return;
@@ -121,17 +123,17 @@ const SignUp = () => {
         if (errorData?.error?.toLowerCase().includes("already exist") ||
             error.message?.toLowerCase().includes("already exist")) {
           toast({
-            title: "Email already registered",
-            description: "An account with this email already exists. Please sign in or use a different email address.",
+            title: t("signUp.emailAlreadyRegistered"),
+            description: t("signUp.emailExistsDescription"),
             variant: "destructive",
           });
           return;
         }
 
         // Generic error fallback
-        const errorMsg = errorData?.error || error.message || "Signup failed";
+        const errorMsg = errorData?.error || error.message || t("signUp.signUpFailed");
         toast({
-          title: "Sign up failed",
+          title: t("signUp.signUpFailed"),
           description: errorMsg,
           variant: "destructive",
         });
@@ -147,8 +149,8 @@ const SignUp = () => {
       console.log("Account created successfully:", data);
 
       toast({
-        title: "Account created!",
-        description: "Welcome to Eficia! You can now sign in with your credentials.",
+        title: t("signUp.accountCreated"),
+        description: t("signUp.welcomeMessage"),
       });
 
       navigate("/signin");
@@ -156,14 +158,14 @@ const SignUp = () => {
       console.error("Signup error:", err);
 
       // Extract error message from the response
-      let errorMessage = "Something went wrong. Please try again.";
+      let errorMessage = t("signUp.somethingWentWrong");
 
       if (err?.message) {
         errorMessage = err.message;
       }
 
       toast({
-        title: "Sign up failed",
+        title: t("signUp.signUpFailed"),
         description: errorMessage,
         variant: "destructive",
       });
@@ -188,12 +190,12 @@ const SignUp = () => {
             </div>
 
             <h1 className="font-display text-3xl font-bold">
-              Create your account
+              {t("signUp.createAccount")}
             </h1>
             <p className="mt-2 text-muted-foreground">
-              Already have an account?{" "}
+              {t("signUp.alreadyHaveAccount")}{" "}
               <Link to="/signin" className="text-eficia-violet hover:underline">
-                Sign in
+                {t("signUp.signIn")}
               </Link>
             </p>
           </div>
@@ -202,11 +204,11 @@ const SignUp = () => {
             {/* Account info */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h2 className="mb-4 font-display text-lg font-semibold">
-                Create your account
+                {t("signUp.createAccount")}
               </h2>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="email">Email *</Label>
+                  <Label htmlFor="email">{t("signUp.email")}</Label>
                   <Input
                     id="email"
                     name="email"
@@ -215,11 +217,11 @@ const SignUp = () => {
                     onChange={handleChange}
                     required
                     className="mt-1"
-                    placeholder="you@company.com"
+                    placeholder={t("signUp.emailPlaceholder")}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="password">Password *</Label>
+                  <Label htmlFor="password">{t("signUp.password")}</Label>
                   <Input
                     id="password"
                     name="password"
@@ -228,11 +230,11 @@ const SignUp = () => {
                     onChange={handleChange}
                     required
                     className="mt-1"
-                    placeholder="At least 6 characters"
+                    placeholder={t("signUp.passwordPlaceholder")}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <Label htmlFor="confirmPassword">{t("signUp.confirmPassword")}</Label>
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -244,7 +246,7 @@ const SignUp = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone (optional)</Label>
+                  <Label htmlFor="phone">{t("signUp.phone")}</Label>
                   <Input
                     id="phone"
                     name="phone"
@@ -252,7 +254,7 @@ const SignUp = () => {
                     value={formData.phone}
                     onChange={handleChange}
                     className="mt-1"
-                    placeholder="+33 6 12 34 56 78"
+                    placeholder={t("signUp.phonePlaceholder")}
                   />
                 </div>
               </div>
@@ -266,22 +268,22 @@ const SignUp = () => {
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
+                  {t("signUp.creatingAccount")}
                 </>
               ) : (
-                "Create Account"
+                t("signUp.createAccount_button")
               )}
             </Button>
           </form>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            By creating an account, you agree to our{" "}
+            {t("signUp.termsPrefix")}{" "}
             <a href="#" className="text-eficia-violet hover:underline">
-              Terms of Service
+              {t("signUp.termsOfService")}
             </a>{" "}
-            and{" "}
+            {t("signUp.and")}{" "}
             <a href="#" className="text-eficia-violet hover:underline">
-              Privacy Policy
+              {t("signUp.privacyPolicy")}
             </a>
             .
           </p>
