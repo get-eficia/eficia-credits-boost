@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(cat:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then echo \"✅ .env exists\")",
+      "Bash(else echo \"❌ .env file not found\")",
+      "Bash(fi)",
+      "Bash(cp:*)",
+      "Bash(pgrep:*)",
+      "Bash(node test-supabase.js:*)",
+      "Bash(pkill:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}
